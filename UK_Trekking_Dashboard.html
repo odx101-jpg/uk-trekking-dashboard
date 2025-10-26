@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>UK Trekking Regions – Live Forecast & Suitability</title>
+<style>
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: #f8f9fa; margin: 0; padding: 1rem; color:#111;}
+  h1 { font-size: 1.6rem; margin: 0 0 .25rem 0; }
+  p.lead { margin: 0 0 1rem 0; color:#555; }
+  .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit,minmax(320px,1fr)); }
+  .card { background: white; border-radius: 1rem; padding: 1rem; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+  .row { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
+  .rank { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; background:#eef2ff; color:#3730a3; font-weight:600; font-size:.85rem; }
+  .badge { border-radius: 999px; padding: 0.2rem 0.6rem; font-size: 0.8rem; font-weight:600; }
+  .good { background:#dcfce7; color:#166534; }
+  .fair { background:#fef9c3; color:#854d0e; }
+  .risk { background:#fee2e2; color:#991b1b; }
+  .icons { display:grid; grid-template-columns: repeat(7,1fr); gap:6px; }
+  .day { border:1px solid #eee; border-radius:.75rem; padding:.5rem; text-align:center; }
+  .day .ico { font-size: 1.4rem; }
+  .muted { color:#666; }
+  .foot { margin-top:1rem; font-size:.8rem; color:#666; }
+  a { color:#2563eb; text-decoration:none; }
+  a:hover { text-decoration:underline; }
+</style>
+</head>
+<body>
+<h1>UK Trekking Regions – Live Forecast & Suitability</h1>
+<p class="lead">Live daily data from Open‑Meteo. Sorted Best → Least. Toggle refresh with your browser reload.</p>
+<div id="regions" class="grid"></div>
+<div class="foot">HikeScore is a heuristic combining precipitation, wind, and temperature comfort. Always check mountain‑specific forecasts (e.g., MWIS) and adapt for elevation.</div>
+<script>
+const REGIONS=[
+ {id:'south_downs',name:'South Downs & Chilterns',lat:50.892,lon:-0.242,note:'Mild, rolling chalk downs; wind exposure on ridges.'},
+ {id:'yorkshire_dales',name:'Yorkshire Dales',lat:54.21,lon:-2.3,note:'Upland moors and limestone; windchill common.'},
+ {id:'peak_district',name:'Peak District',lat:53.36,lon:-1.83,note:'Gritstone edges and moorland; fast‑changing weather.'},
+ {id:'brecon_beacons',name:'Brecon Beacons (Bannau Brycheiniog)',lat:51.885,lon:-3.436,note:'Rounded summits; mist forms quickly on tops.'},
+ {id:'dartmoor_exmoor',name:'Dartmoor & Exmoor',lat:50.57,lon:-3.94,note:'Boggy in places; visibility can drop fast in mist.'},
+ {id:'lake_district',name:'Lake District',lat:54.46,lon:-3.09,note:'Steep, rocky routes; rainfall and wind amplify risk.'},
+ {id:'snowdonia',name:'Snowdonia (Eryri)',lat:53.07,lon:-4.04,note:'Rugged peaks and ridges; frequent summit cloud.'},
+ {id:'scottish_highlands',name:'Scottish Highlands',lat:56.82,lon:-5.11,note:'Very exposed; rapid shifts, colder at elevation.'}
+];
+const DAYS=7;
+function icon(code){ if([0].includes(code))return'☀️'; if([1,2,3].includes(code))return'⛅'; if([45,48].includes(code))return'🌫️';
+  if([51,53,55,56,57].includes(code))return'🌦️'; if([61,63,65,66,67,80,81,82].includes(code))return'🌧️';
+  if([71,73,75,77,85,86].includes(code))return'❄️'; if([95,96,99].includes(code))return'⛈️'; return'🌤️'; }
+function score(d){ let s=100; s-=Math.min(d.precip*6,45); s-=Math.max(0,d.wind-15)*1.2; const mid=(d.tmax+d.tmin)/2; s-=Math.max(0,Math.abs(mid-13)-5)*1.5; return Math.max(0,Math.min(100,Math.round(s))); }
+function band(s){ if(s>=75) return ['Very good','good']; if(s>=60) return ['Good','good']; if(s>=45) return ['Fair','fair']; if(s>=30) return ['Challenging','fair']; return ['High risk','risk']; }
+async function getData(lat,lon){
+  const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,weathercode&forecast_days=${DAYS}&timezone=auto`;
+  const r=await fetch(url); const j=await r.json();
+  return j.daily.time.map((t,i)=>({date:t,tmax:j.daily.temperature_2m_max[i],tmin:j.daily.temperature_2m_min[i],precip:j.daily.precipitation_sum[i],wind:j.daily.wind_speed_10m_max[i],code:j.daily.weathercode[i]}));
+}
+async function build(){
+  const cont=document.getElementById('regions'); cont.innerHTML='<p class="muted">Loading…</p>';
+  const rows=[];
+  for(const r of REGIONS){
+    try{ const days=await getData(r.lat,r.lon); const avg=days.map(score).reduce((a,b)=>a+b,0)/days.length; rows.push({...r,days,avg}); }
+    catch(e){ console.error(e); }
+  }
+  rows.sort((a,b)=>b.avg-a.avg); cont.innerHTML='';
+  rows.forEach((r,i)=>{
+    const [label, cls] = band(r.avg);
+    const card=document.createElement('div'); card.className='card';
+    const iconStrip=r.days.map(d=>`<div class="day"><div class="ico">${icon(d.code)}</div><div class="muted" style="font-size:.75rem">${new Date(d.date).toLocaleDateString('en-GB',{weekday:'short'})}</div><div style="font-weight:600">${Math.round(d.tmax)}° / ${Math.round(d.tmin)}°</div><div class="muted" style="font-size:.75rem">${d.precip.toFixed(1)} mm · ${Math.round(d.wind)} km/h</div></div>`).join('');
+    card.innerHTML=`
+      <div class="row" style="margin-bottom:.5rem">
+        <div class="rank">${i+1}</div>
+        <h3 style="margin:0; font-size:1.05rem">${r.name}</h3>
+      </div>
+      <div class="row" style="gap:.5rem; margin:.25rem 0 .75rem 0">
+        <span class="badge ${cls}">${label}</span>
+        <span class="muted">Avg HikeScore: ${Math.round(r.avg)}</span>
+        <span class="muted">(${r.lat.toFixed(2)}, ${r.lon.toFixed(2)})</span>
+      </div>
+      <div class="icons">${iconStrip}</div>
+      <div class="muted" style="margin-top:.5rem; font-size:.85rem">${r.note}</div>
+      <div class="row" style="gap:.75rem; margin-top:.5rem">
+        <a href="https://www.open-meteo.com/" target="_blank" rel="noreferrer">Source</a>
+        <a href="https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lon}" target="_blank" rel="noreferrer">Map</a>
+      </div>
+    `;
+    cont.appendChild(card);
+  });
+}
+build();
+</script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Silvio Trekking – Radar (Spider) View</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%23b91c1c'/><text x='50' y='60' text-anchor='middle' font-size='52' fill='white' font-family='Arial'>R</text></svg>">
+<style>
+  :root{ --brand:#b91c1c; --bg:#0f1115; --card:#151922; --muted:#9aa4b2; }
+  *{box-sizing:border-box}
+  body{margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:#e5e7eb;}
+  .wrap{max-width:1200px; margin:0 auto; padding:16px;}
+  header{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;}
+  .brand{display:flex; gap:10px; align-items:center;}
+  .logo{width:34px;height:34px;border-radius:50%;background:var(--brand);display:grid;place-items:center;font-weight:800;}
+  h1{font-size:1.2rem;margin:0}
+  .controls{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{background:#1f2937;border:1px solid #232b38;color:#e5e7eb;padding:8px 12px;border-radius:10px;cursor:pointer}
+  .btn:hover{background:#243042}
+  .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+  .card{background:var(--card);border:1px solid #232b38;border-radius:14px;padding:12px}
+  .muted{color:var(--muted)}
+  .meta{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px}
+  .badge{border-radius:999px;padding:2px 8px;font-size:.8rem;font-weight:700}
+  .good{background:#1d3d2a;color:#86efac}.fair{background:#3c2f10;color:#fde68a}.risk{background:#3a1d1d;color:#fecaca}
+  canvas{max-width:100%;height:260px !important}
+  .stamp{font-size:.85rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo">RR</div>
+      <div>
+        <h1>Silvio Trekking – Radar (Spider) View</h1>
+        <div class="stamp" id="stamp">Last updated: —</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn" id="refresh">Refresh</button>
+      <a class="btn" href="./index.html">Back to Cards</a>
+    </div>
+  </header>
+
+  <p class="muted">Spider charts show the three contributors to HikeScore (higher is better): Rain, Wind, Temp Comfort. Ranked Best → Least.</p>
+
+  <div id="grid" class="grid"></div>
+</div>
+
+<!-- Chart.js via CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const REGIONS=[
+ {id:'south_downs',name:'South Downs & Chilterns',lat:50.892,lon:-0.242},
+ {id:'yorkshire_dales',name:'Yorkshire Dales',lat:54.21,lon:-2.3},
+ {id:'peak_district',name:'Peak District',lat:53.36,lon:-1.83},
+ {id:'brecon_beacons',name:'Brecon Beacons (Bannau Brycheiniog)',lat:51.885,lon:-3.436},
+ {id:'dartmoor_exmoor',name:'Dartmoor & Exmoor',lat:50.57,lon:-3.94},
+ {id:'lake_district',name:'Lake District',lat:54.46,lon:-3.09},
+ {id:'snowdonia',name:'Snowdonia (Eryri)',lat:53.07,lon:-4.04},
+ {id:'scottish_highlands',name:'Scottish Highlands',lat:56.82,lon:-5.11}
+];
+let DAYS=7;
+function stamp(){ document.getElementById('stamp').textContent='Last updated: '+new Date().toLocaleString(); }
+function avg(a){ return a.reduce((x,y)=>x+y,0)/a.length; }
+// 0–100 goodness (higher is better) mirroring the HikeScore penalties inverted.
+function goodRain(mm){ return Math.max(0, 100 - Math.min(mm*6,45)); }
+function goodWind(kmh){ const penalty=Math.max(0,kmh-15)*1.2; return Math.max(0,100-penalty); }
+function goodTemp(midC){ const pen = Math.max(0, Math.abs(midC-13)-5)*1.5; return Math.max(0, 100-pen); }
+async function fetchDays(lat,lon){
+  const q=new URLSearchParams({latitude:String(lat),longitude:String(lon),daily:'temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max',forecast_days:String(DAYS),timezone:'auto'});
+  const r=await fetch('https://api.open-meteo.com/v1/forecast?'+q.toString()); const j=await r.json();
+  return j.daily.time.map((t,i)=>({date:t,tmax:j.daily.temperature_2m_max[i],tmin:j.daily.temperature_2m_min[i],precip:j.daily.precipitation_sum[i],wind:j.daily.wind_speed_10m_max[i]}));
+}
+async function build(){
+  const cont=document.getElementById('grid'); cont.innerHTML='<div class=\"muted\">Loading…</div>';
+  const rows=[];
+  for(const r of REGIONS){
+    try{
+      const days=await fetchDays(r.lat,r.lon);
+      const mids=days.map(d=>(d.tmax+d.tmin)/2);
+      const rainAvg=avg(days.map(d=>goodRain(d.precip)));
+      const windAvg=avg(days.map(d=>goodWind(d.wind)));
+      const tempAvg=avg(mids.map(m=>goodTemp(m)));
+      const hikeAvg=Math.round(avg([rainAvg,windAvg,tempAvg]));
+      rows.push({...r,rainAvg,windAvg,tempAvg,hikeAvg});
+    }catch(e){ console.error(e); }
+  }
+  rows.sort((a,b)=>b.hikeAvg-a.hikeAvg);
+  cont.innerHTML='';
+  rows.forEach((r,i)=>{
+    const cls = r.hikeAvg>=60?'good': r.hikeAvg>=45?'fair':'risk';
+    const wrap=document.createElement('div'); wrap.className='card';
+    wrap.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div style="font-weight:700">${i+1}. ${r.name}</div>
+        <span class="badge ${cls}">HikeScore ~ ${r.hikeAvg}</span>
+      </div>
+      <div style=\"height:8px\"></div>
+      <canvas id=\"cv_${r.id}\"></canvas>
+      <div class=\"meta\">
+        <span class=\"muted\">Rain ${r.rainAvg.toFixed(0)} | Wind ${r.windAvg.toFixed(0)} | Temp ${r.tempAvg.toFixed(0)}</span>
+        <a class=\"muted\" href=\"https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lon}\" target=\"_blank\" rel=\"noreferrer\">Map</a>
+      </div>
+    `;
+    cont.appendChild(wrap);
+    const ctx = wrap.querySelector('canvas').getContext('2d');
+    new Chart(ctx, {
+      type: 'radar',
+      data: {
+        labels: ['Rain', 'Wind', 'Temp Comfort'],
+        datasets: [{ label: r.name, data: [r.rainAvg, r.windAvg, r.tempAvg], fill: true, borderWidth: 2, pointRadius: 2 }]
+      },
+      options: {
+        responsive: true,
+        scales: { r: { suggestedMin: 0, suggestedMax: 100, angleLines: { color: '#2b3343' }, grid: { color: '#2b3343' }, pointLabels: { color: '#cbd5e1' }, ticks: { display: false } } },
+        plugins: { legend: { display: false } }
+      }
+    });
+  });
+  stamp();
+}
+document.getElementById('refresh').addEventListener('click', build);
+build();
+</script>
+</body>
+</html>

@@ -23,11 +23,21 @@
   .foot { margin-top:1rem; font-size:.8rem; color:#666; }
   a { color:#2563eb; text-decoration:none; }
   a:hover { text-decoration:underline; }
+/* --- toolbar + buttons --- */
+.toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin: .25rem 0 1rem; }
+.btn { display:inline-block; background:#1f2937; color:#fff; border:1px solid #e5e7eb; padding:8px 12px; border-radius:10px; text-decoration:none; cursor:pointer; }
+.btn:hover { background:#243042; }
+.btn:focus { outline: none; }  
 </style>
 </head>
 <body>
 <h1>UK Trekking Regions – Live Forecast & Suitability</h1>
 <p class="lead">Live daily data from Open‑Meteo. Sorted Best → Least. Toggle refresh with your browser reload.</p>
+<div class="toolbar">
+  <a class="btn" href="./index_radar.html">Spider View</a>
+  <a class="btn" href="https://www.mwis.org.uk/" target="_blank" rel="noreferrer">MWIS Mountain Forecast</a>
+  <button class="btn" onclick="build()">Refresh</button>
+</div>  
 <div id="regions" class="grid"></div>
 <div class="foot">HikeScore is a heuristic combining precipitation, wind, and temperature comfort. Always check mountain‑specific forecasts (e.g., MWIS) and adapt for elevation.</div>
 <script>

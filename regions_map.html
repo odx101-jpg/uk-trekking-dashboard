@@ -27,24 +27,15 @@
   .dot.good{background:var(--good)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
   .meta{color:var(--muted);font-size:12px}
 
-  /* Numbered badge marker */
-  .num-marker{
-    width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-    font-weight:800;font-size:12px;color:#0b1a14;border:2px solid #00000040;
-    box-shadow:0 1px 0 #0009,inset 0 -3px 8px #0003;background:var(--good);
-  }
-  .num-marker.warn{ background:var(--warn); color:#111 }
-  .num-marker.bad { background:var(--bad);  color:#fff }
-
-  /* Label pill (tooltip) */
-  .lbl{padding:4px 8px;border-radius:999px;font-size:12px;font-weight:700;color:#0b1a14;
-       border:1px solid #00000033;box-shadow:0 1px 0 #0009, inset 0 -2px 6px #0004;background:var(--good)}
+  /* Clean pill labels */
+  .lbl{padding:5px 10px;border-radius:999px;font-size:12px;font-weight:700;color:#0b1a14;
+       border:1px solid #00000033;box-shadow:0 1px 0 #0009, inset 0 -2px 6px #0004;background:var(--good);display:inline-flex;align-items:center;gap:6px}
   .lbl.warn{background:var(--warn);color:#111}
   .lbl.bad{background:var(--bad);color:#fff}
-  .lbl .s{margin-left:6px;padding:2px 6px;border-radius:10px;background:#0e6f52;color:#fff;font-weight:800}
+  .lbl .s{padding:2px 6px;border-radius:10px;background:#0e6f52;color:#fff;font-weight:800}
   .lbl.warn .s{background:#b87e12;color:#111}
   .lbl.bad .s{background:#7e2224;color:#fff}
-  .leaflet-tooltip.lbl-tip{background:transparent;border:none;box-shadow:none}
+  .leaflet-tooltip.lbl-tip{background:transparent;border:none;box-shadow:none;font-family:inherit}
 </style>
 </head>
 <body>
@@ -65,22 +56,20 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin></script>
 <script>
-/* Regions (Upper Basildon removed) */
 const regions = [
-  { name:"South Downs & Chilterns",    lat:51.000,  lon:-0.900 },
-  { name:"Peak District (Edale)",      lat:53.364,  lon:-1.816 },
+  { name:"South Downs & Chilterns", lat:51.000, lon:-0.900 },
+  { name:"Peak District (Edale)", lat:53.364, lon:-1.816 },
   { name:"Snowdonia / Eryri (Llanberis)", lat:53.118, lon:-4.127 },
-  { name:"Lake District (Keswick)",    lat:54.6039, lon:-3.1347 },
-  { name:"Yorkshire Dales (Settle)",   lat:54.068,  lon:-2.278 },
+  { name:"Lake District (Keswick)", lat:54.6039, lon:-3.1347 },
+  { name:"Yorkshire Dales (Settle)", lat:54.068, lon:-2.278 },
   { name:"Forest of Bowland (Dunsop Bridge)", lat:53.943, lon:-2.502 },
   { name:"Brecon Beacons (Storey Arms)", lat:51.885, lon:-3.471 },
-  { name:"North York Moors (Helmsley)",lat:54.245,  lon:-1.056 },
-  { name:"Dartmoor (Princetown)",      lat:50.546,  lon:-3.990 },
-  { name:"Exmoor (Simonsbath)",        lat:51.120,  lon:-3.690 },
-  { name:"Norfolk Broads (Wroxham)",   lat:52.710,  lon: 1.410 }
+  { name:"North York Moors (Helmsley)", lat:54.245, lon:-1.056 },
+  { name:"Dartmoor (Princetown)", lat:50.546, lon:-3.990 },
+  { name:"Exmoor (Simonsbath)", lat:51.120, lon:-3.690 },
+  { name:"Norfolk Broads (Wroxham)", lat:52.710, lon:1.410 }
 ];
 
-/* Score (floor <10 shown) */
 function scoreSuitability({ wind, precip, tmax, tmin, cloud }){
   let s=100;
   if(wind>35)s-=(wind-35)*0.8;
@@ -97,22 +86,19 @@ function scoreSuitability({ wind, precip, tmax, tmin, cloud }){
   return { s, show, label, cls };
 }
 
-/* Map */
-const map = L.map('map', { center:[54.5,-3], zoom:6, zoomControl:true });
+const map = L.map('map', { center:[53.5,-2.5], zoom:6 });
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   { attribution:'&copy; OpenStreetMap' }).addTo(map);
 
-/* Fetch + render */
 (async()=>{
   const items=[];
   for(const r of regions){
     try{
       const url=new URL("https://api.open-meteo.com/v1/forecast");
       url.search=new URLSearchParams({
-        latitude:r.lat, longitude:r.lon, timezone:"auto",
+        latitude:r.lat,longitude:r.lon,timezone:"auto",
         daily:"weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max",
-        forecast_days:6
-      }).toString();
+        forecast_days:6}).toString();
       const res=await fetch(url);
       if(!res.ok) throw new Error(res.status);
       const data=await res.json(), d=data.daily;
@@ -124,39 +110,26 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
         cloud:[45,48].includes(d.weather_code[0])?95:([0].includes(d.weather_code[0])?15:60)
       });
       items.push({...r,today,data});
-    }catch(e){
+    }catch{
       items.push({...r,today:{s:5,show:"<10",label:"High risk",cls:"bad"},error:true});
     }
   }
 
-  // Best → worst
   items.sort((a,b)=>b.today.s-a.today.s);
 
   items.forEach(item=>{
-    // DivIcon with number
-    const html = `<div class="num-marker ${item.today.cls}">${item.today.show}</div>`;
-    const icon = L.divIcon({
-      className:"",      // no extra wrapper class
-      html,
-      iconSize:[28,28],
-      iconAnchor:[14,14] // center align
-    });
-
-    const marker = L.marker([item.lat,item.lon],{icon}).addTo(map);
-
-    // Tooltip label pill
     const tip = `<span class="lbl ${item.today.cls}">
-      ${item.name}<span class="s">${item.today.show}</span></span>`;
-    marker.bindTooltip(tip,{permanent:true,direction:'top',className:'lbl-tip',offset:[0,-12]}).openTooltip();
+      ${item.name} <span class="s">${item.today.show}</span></span>`;
+    const marker = L.marker([item.lat,item.lon],{opacity:0}); // invisible anchor
+    marker.addTo(map);
+    marker.bindTooltip(tip,{permanent:true,direction:'top',className:'lbl-tip',offset:[0,0]}).openTooltip();
 
-    // Popup details
-    const details = item.error ? '<div class="meta" style="color:#ff8080">Data unavailable.</div>' :
-      `<div class="meta">
-        Max/Min: ${item.data.daily.temperature_2m_max[0].toFixed(0)}° /
-        ${item.data.daily.temperature_2m_min[0].toFixed(0)}° ·
-        Wind: ${Math.round(item.data.daily.wind_speed_10m_max[0])} km/h ·
-        Rain: ${item.data.daily.precipitation_sum[0].toFixed(1)} mm
-      </div>`;
+    const details = item.error
+      ? '<div class="meta" style="color:#ff8080">Data unavailable.</div>'
+      : `<div class="meta">Max/Min: ${item.data.daily.temperature_2m_max[0].toFixed(0)}° /
+         ${item.data.daily.temperature_2m_min[0].toFixed(0)}° · Wind:
+         ${Math.round(item.data.daily.wind_speed_10m_max[0])} km/h · Rain:
+         ${item.data.daily.precipitation_sum[0].toFixed(1)} mm</div>`;
     marker.bindPopup(`<strong>${item.name}</strong> — ${item.today.label}${details}`);
   });
 })();

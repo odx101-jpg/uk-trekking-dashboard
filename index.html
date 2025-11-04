@@ -5,68 +5,65 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>UK Trekking Dashboard – Live Weather</title>
   <style>
-    :root {
+    :root{
       --bg:#0e1116;--panel:#151a23;--line:#242b38;
-      --text:#e9edf3;--muted:#a9b3c3;--good:#25c28a;
-      --warn:#ffc24d;--bad:#ff6363;--accent:#46a3ff;
+      --text:#e9edf3;--muted:#a9b3c3;
+      --good:#25c28a;--warn:#ffc24d;--bad:#ff4d4f;--accent:#46a3ff;
     }
     *{box-sizing:border-box}
-    body{
-      margin:0;background:var(--bg);color:var(--text);
-      font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial;
-    }
+    body{margin:0;background:var(--bg);color:var(--text);
+      font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial}
     header{padding:16px 18px;border-bottom:1px solid var(--line)}
     h1{margin:0 0 4px 0;font-size:20px}
     .sub{color:var(--muted);font-size:13px}
 
     /* 2-column grid */
     .grid{
-      display:grid;
-      gap:20px;
-      padding:16px;
-      grid-template-columns:repeat(2, minmax(420px, 1fr));
-      justify-content:center;
-      align-items:start;
-      max-width:1400px;
-      margin:0 auto;
+      display:grid;gap:20px;padding:16px;
+      grid-template-columns:repeat(2,minmax(420px,1fr));
+      justify-content:center;align-items:start;max-width:1400px;margin:0 auto;
     }
-    @media (max-width:980px){
-      .grid{grid-template-columns:1fr;}
-    }
+    @media (max-width:980px){ .grid{grid-template-columns:1fr;} }
 
     .card{
       background:var(--panel);border:1px solid var(--line);
       border-radius:14px;padding:14px;box-shadow:0 1px 0 #0b0f16;
       display:flex;flex-direction:column;height:100%;
     }
-    .row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px}
+    .row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
     .name{font-weight:700}
+    .right{display:flex;align-items:center;gap:10px}
     .pill{border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:12px}
     .good{color:var(--good);border-color:color-mix(in oklab,var(--good),#000 70%)}
     .warn{color:var(--warn);border-color:color-mix(in oklab,var(--warn),#000 70%)}
     .bad{color:var(--bad);border-color:color-mix(in oklab,var(--bad),#000 70%)}
 
+    /* BIG circular score badge */
+    .badge{
+      width:48px;height:48px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      font-weight:800;font-size:16px;color:#fff;
+      box-shadow:0 0 0 2px #00000033, inset 0 -3px 8px #00000033;
+    }
+    .badge.good{background:var(--good)}
+    .badge.warn{background:var(--warn);color:#111}
+    .badge.bad{background:var(--bad)}
+
     .kpis{
-      display:grid;
-      grid-template-columns:repeat(2,minmax(0,1fr));
-      gap:10px;
-      margin:10px 0 12px;
-      min-height:100px;
+      display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:10px;margin:10px 0 12px;min-height:100px
     }
     .k{border:1px solid var(--line);border-radius:10px;padding:8px 10px}
     .k b{display:block;font-size:16px}
 
     .days{
-      margin-top:auto;
-      display:grid;
-      gap:8px;
-      grid-template-columns:repeat(6,1fr);
-      min-height:132px;
+      margin-top:auto;display:grid;gap:8px;
+      grid-template-columns:repeat(6,1fr);min-height:132px
     }
     .d{
       background:#0c1016;border:1px solid var(--line);
       border-radius:10px;padding:10px;display:flex;
-      flex-direction:column;justify-content:space-between;min-height:120px;
+      flex-direction:column;justify-content:space-between;min-height:120px
     }
     .dt{font-size:12px;color:var(--muted)}
     .wx{display:flex;align-items:center;gap:8px}
@@ -90,20 +87,22 @@
 <section class="grid" id="cards"></section>
 
 <footer>
-  <span class="src">Built with <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo</a> data. Adjust regions or thresholds in <code>scoreSuitability()</code>.</span>
+  <span class="src">Built with <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo</a>. Tweak thresholds in <code>scoreSuitability()</code>.</span>
 </footer>
 
 <script>
+/* --- Regions (add/edit freely; coords are approximate) --- */
 const regions = [
-  { name:"South Downs & Chilterns", lat:51.0, lon:-0.9 },
+  { name:"Upper Basildon (RG8 8NT)", lat:51.481, lon:-1.142 },   // your location
+  { name:"Forest of Bowland (Lancashire)", lat:53.993, lon:-2.573 },
+  { name:"Yorkshire Dales (Settle)", lat:54.068, lon:-2.278 },
   { name:"Lake District (Keswick)", lat:54.6039, lon:-3.1347 },
   { name:"Snowdonia (Llanberis)", lat:53.118, lon:-4.127 },
   { name:"Peak District (Edale)", lat:53.364, lon:-1.816 },
-  { name:"Yorkshire Dales (Settle)", lat:54.068, lon:-2.278 },
-  { name:"Brecon Beacons (Storey Arms)", lat:51.885, lon:-3.471 },
-  { name:"Forest of Bowland (Lancashire)", lat:53.993, lon:-2.573 }
+  { name:"Brecon Beacons (Storey Arms)", lat:51.885, lon:-3.471 }
 ];
 
+/* --- Compact, high-contrast icons (inline SVG) --- */
 const I={
   sun:'<svg viewBox="0 0 24 24" class="ico" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4" fill="currentColor"/><g opacity=".9"><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></g></svg>',
   cloud:'<svg viewBox="0 0 24 24" class="ico" fill="currentColor"><path d="M7.5 18a4.5 4.5 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 9.5c2.2 0 4 1.8 4 4S20.2 18 18 18z"/></svg>',
@@ -114,6 +113,7 @@ const I={
   fog:'<svg viewBox="0 0 24 24" class="ico" fill="currentColor"><path d="M7.5 14a4.5 4.5 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 5.5c2.2 0 4 1.8 4 4S20.2 14 18 14z"/><g opacity=".9"><rect x="5" y="16" width="14" height="1.8" rx=".9"/><rect x="4" y="19" width="12" height="1.8" rx=".9"/></g></svg>'
 };
 
+/* Weather code → icon */
 function codeToIcon(code){
   if([0].includes(code)) return I.sun;
   if([1,2,3].includes(code)) return I.cloud;
@@ -125,6 +125,7 @@ function codeToIcon(code){
   return I.cloud;
 }
 
+/* Suitability scoring */
 function scoreSuitability({wind,precip,tmax,tmin,cloud}){
   let s=100;
   if(wind>30)s-=(wind-30)*1.1;
@@ -135,12 +136,14 @@ function scoreSuitability({wind,precip,tmax,tmin,cloud}){
   s=Math.max(0,Math.min(100,Math.round(s)));
   const label=s>=75?'Very good':s>=55?'Good':s>=40?'Fair':'High risk';
   const cls=s>=75?'good':s>=55?'good':s>=40?'warn':'bad';
-  return{s,label,cls};
+  return {s,label,cls};
 }
 
+/* DOM helpers */
 const cardsEl=document.getElementById('cards');
 function el(t,c,x){const e=document.createElement(t);if(c)e.className=c;if(x)e.textContent=x;return e;}
 
+/* Fetch */
 async function fetchRegion(r){
   const url=new URL('https://api.open-meteo.com/v1/forecast');
   url.search=new URLSearchParams({
@@ -149,33 +152,41 @@ async function fetchRegion(r){
     forecast_days:6
   }).toString();
   const res=await fetch(url);
-  if(!res.ok)throw new Error('HTTP '+res.status);
+  if(!res.ok) throw new Error('HTTP '+res.status);
   return res.json();
 }
 
+/* Build & sort */
 async function buildAll(){
   const results=[];
   for(const r of regions){
     try{
       const data=await fetchRegion(r);
       const d=data.daily;
-      const tmax=d.temperature_2m_max[0],tmin=d.temperature_2m_min[0];
-      const precip=d.precipitation_sum[0],wind=d.wind_speed_10m_max[0];
+      const tmax=d.temperature_2m_max[0], tmin=d.temperature_2m_min[0];
+      const precip=d.precipitation_sum[0], wind=d.wind_speed_10m_max[0];
       const code=d.weather_code[0];
       const cloudProxy=[45,48].includes(code)?95:([0].includes(code)?15:60);
       const sc=scoreSuitability({wind,precip,tmax,tmin,cloud:cloudProxy});
       results.push({...r,data,score:sc});
-    }catch(e){console.error(r.name,e);}
+    }catch(e){ console.error(r.name,e); }
   }
   results.sort((a,b)=>b.score.s-a.score.s);
   results.forEach(renderRegion);
 }
 
+/* Render card */
 function renderRegion(r){
   const d=r.data.daily;
   const card=el('div','card');
   const top=el('div','row');
-  top.append(el('div','name',r.name),el('span',`pill ${r.score.cls}`,r.score.label));
+
+  const right=el('div','right');
+  const pill=el('span',`pill ${r.score.cls}`,r.score.label);
+  const badge=el('div',`badge ${r.score.cls}`,String(r.score.s));
+  right.append(pill,badge);
+
+  top.append(el('div','name',r.name), right);
   card.append(top);
 
   const kpis=el('div','kpis');
@@ -186,14 +197,14 @@ function renderRegion(r){
   card.append(kpis);
 
   const days=el('div','days');
-  const opts={weekday:'short'};
+  const fmt={weekday:'short'};
   for(let i=0;i<d.time.length;i++){
     const cell=el('div','d');
     const dt=new Date(d.time[i]);
-    cell.append(el('div','dt',dt.toLocaleDateString(undefined,opts)));
+    cell.append(el('div','dt',dt.toLocaleDateString(undefined,fmt)));
     const wx=el('div','wx');
-    const ic=el('span');ic.innerHTML=codeToIcon(d.weather_code[i]);
-    wx.append(ic,el('div','t',`${d.temperature_2m_max[i].toFixed(0)}° / ${d.temperature_2m_min[i].toFixed(0)}°`));
+    const ic=el('span'); ic.innerHTML=codeToIcon(d.weather_code[i]);
+    wx.append(ic, el('div','t',`${d.temperature_2m_max[i].toFixed(0)}° / ${d.temperature_2m_min[i].toFixed(0)}°`));
     cell.append(wx);
     cell.append(el('div','tiny',`${d.precipitation_sum[i].toFixed(1)} mm · ${Math.round(d.wind_speed_10m_max[i])} km/h`));
     days.append(cell);

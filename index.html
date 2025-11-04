@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>UK Trekking Dashboard – Live Weather</title>
+<title>UK Trekking Dashboard – Daily Scores</title>
 <style>
   :root{
     --bg:#0e1116;--panel:#151a23;--line:#242b38;
@@ -32,25 +32,10 @@
   }
   .row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
   .name{font-weight:700}
-  .pill{border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:12px}
-  .good{color:var(--good);border-color:#1a7257}
-  .warn{color:#dca11f;border-color:#4b3d12}
-  .bad{color:var(--bad);border-color:#6d2324}
 
-  .badge{
-    width:48px;height:48px;border-radius:50%;
-    display:flex;align-items:center;justify-content:center;
-    font-weight:800;font-size:16px;color:#fff;
-    box-shadow:0 0 0 2px #00000033, inset 0 -3px 8px #00000033;
-  }
-  .badge.good{background:var(--good)}
-  .badge.warn{background:var(--warn);color:#111}
-  .badge.bad{background:var(--bad)}
-
-  .right{display:flex;align-items:center;gap:10px}
   .kpis{
-    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:10px;margin:10px 0 12px;min-height:100px
+    display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:10px;margin:10px 0 12px;min-height:90px
   }
   .k{border:1px solid var(--line);border-radius:10px;padding:8px 10px}
   .k b{display:block;font-size:16px}
@@ -60,33 +45,41 @@
     grid-template-columns:repeat(6,1fr);min-height:132px
   }
   .d{
+    position:relative;
     background:#0c1016;border:1px solid var(--line);
     border-radius:10px;padding:10px;display:flex;
     flex-direction:column;justify-content:space-between;min-height:120px
   }
   .dt{font-size:12px;color:var(--muted)}
   .wx{display:flex;align-items:center;gap:8px}
+
   .ico{width:26px;height:26px;display:inline-block;filter:drop-shadow(0 0 2px #0008)}
-  .ico.good{color:var(--good)}
-  .ico.warn{color:var(--warn)}
-  .ico.bad{color:var(--bad)}
+  .ico.good{color:var(--good)} .ico.warn{color:var(--warn)} .ico.bad{color:var(--bad)}
+  .ico svg { fill: currentColor; stroke: currentColor; }
+
   .t{font-weight:600}
   .tiny{font-size:12px;color:var(--muted)}
+
+  /* per-day score badge */
+  .score{
+    position:absolute;top:8px;right:8px;
+    width:28px;height:28px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:12px;color:#0b1a14;border:2px solid #00000040;
+    box-shadow:0 1px 0 #0009,inset 0 -3px 8px #0003;background:var(--good);
+  }
+  .score.warn{background:var(--warn);color:#111}
+  .score.bad{background:var(--bad);color:#fff}
+
   footer{padding:14px 16px;color:var(--muted);font-size:12px}
   .src a{color:var(--accent);text-decoration:none}
-
-  /* ✅ Fix SVG tint for all browsers */
-  .ico svg { fill: currentColor; stroke: currentColor; }
-  .ico.good, .ico.good svg { color: var(--good); fill: var(--good); stroke: var(--good); }
-  .ico.warn, .ico.warn svg { color: var(--warn); fill: var(--warn); stroke: var(--warn); }
-  .ico.bad,  .ico.bad  svg { color: var(--bad);  fill: var(--bad);  stroke: var(--bad); }
 </style>
 </head>
 <body>
 <header>
-  <h1>UK Trekking Dashboard – Live Weather</h1>
+  <h1>UK Trekking – Daily HikeScores</h1>
   <div class="sub">
-    Sorted by suitability · Per-day coloured icons · Data:
+    Each tile shows its own HikeScore · Icons: clouds & light rain = green · Data:
     <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo</a> ·
     <a href="regions_map.html">Map view</a>
   </div>
@@ -95,10 +88,11 @@
 <section class="grid" id="cards"></section>
 
 <footer>
-  <span class="src">Tweak weights in <code>scoreSuitability()</code>.</span>
+  <span class="src">Adjust weights in <code>scoreSuitability()</code>. Scores floor at &lt;10.</span>
 </footer>
 
 <script>
+/* Regions (Upper Basildon removed) */
 const regions = [
   { name:"South Downs & Chilterns", lat:51.000, lon:-0.900 },
   { name:"Peak District (Edale)", lat:53.364, lon:-1.816 },
@@ -109,13 +103,14 @@ const regions = [
   { name:"Brecon Beacons (Storey Arms)", lat:51.885, lon:-3.471 },
   { name:"North York Moors (Helmsley)", lat:54.245, lon:-1.056 },
   { name:"Dartmoor (Princetown)", lat:50.546, lon:-3.990 },
-  { name:"Exmoor (Simonsbath)", lat:51.120, lon:-3.690 },
+  { name:"Exmoor (Simonsbath)",  lat:51.120, lon:-3.690 },
   { name:"Norfolk Broads (Wroxham)", lat:52.710, lon:1.410 }
 ];
 
+/* Icons (currentColor) */
 const I={
   sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4" fill="currentColor"/><g opacity=".9"><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></g></svg>',
-  cloud:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 18a4.5 4.5 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 9.5c2.2 0 4 1.8 4 4S20.2 18 18 18z"/></svg>',
+  cloud:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 18a4.5 4.5 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 9.5c2.2 0 4 1.8 4 4S20.2 14 18 14z"/></svg>',
   rain:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 14a4.5 4.5 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 5.5c2.2 0 4 1.8 4 4S20.2 14 18 14z"/><path d="M7 16l-1 3m5-3l-1 3m5-3l-1 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>',
   drizzle:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 14a4.5 4.5 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 5.5c2.2 0 4 1.8 4 4S20.2 14 18 14z"/><path d="M7 16l-.6 1.5m4.6-1.5l-.6 1.5m4.6-1.5l-.6 1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>',
   storm:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 14a4.5 4.5 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 5.5c2.2 0 4 1.8 4 4S20.2 14 18 14z"/><path d="M10 16l-2 5 5-3-2 5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/></svg>',
@@ -132,6 +127,7 @@ function iconKey(code){
   return 'cloud';
 }
 
+/* HikeScore (floor at <10) */
 function scoreSuitability({ wind, precip, tmax, tmin, cloud }){
   let s=100;
   if(wind>35)s-=(wind-35)*0.8;
@@ -145,9 +141,10 @@ function scoreSuitability({ wind, precip, tmax, tmin, cloud }){
   const show=s<=10?"<10":s;
   const label=s>=75?"Very good":s>=55?"Good":s>=40?"Fair":"High risk";
   const cls=s>=55?"good":s>=40?"warn":"bad";
-  return{ s,show,label,cls };
+  return { s, show, label, cls };
 }
 
+/* Tint rule for icons (clouds & light/med rain = green) */
 function iconTintByWeatherCode(code){
   if([1,2,3,45,48].includes(code)) return 'good';
   if([51,53,55,56,57,61,63,65,80,81,82].includes(code)) return 'good';
@@ -171,11 +168,12 @@ async function fetchRegion(r){
 }
 
 (async function buildAll(){
-  const results=[];
+  const items=[];
   for(const r of regions){
     try{
       const data=await fetchRegion(r);
       const d=data.daily;
+      // use day-0 score for sorting (today)
       const today=scoreSuitability({
         wind:d.wind_speed_10m_max[0],
         precip:d.precipitation_sum[0],
@@ -183,22 +181,19 @@ async function fetchRegion(r){
         tmin:d.temperature_2m_min[0],
         cloud:[45,48].includes(d.weather_code[0])?95:([0].includes(d.weather_code[0])?15:60)
       });
-      results.push({...r,data,today});
+      items.push({...r,data,today});
     }catch(e){
-      results.push({...r,error:true,today:{s:5,show:"<10",label:"High risk",cls:"bad"}});
+      items.push({...r,error:true,today:{s:5,show:"<10",label:"High risk",cls:"bad"}});
     }
   }
-  results.sort((a,b)=>b.today.s-a.today.s);
-  results.forEach(renderRegion);
+  items.sort((a,b)=>b.today.s-a.today.s);
+  items.forEach(renderRegion);
 })();
 
 function renderRegion(r){
   const card=el("div","card");
   const top=el("div","row");
-  const right=el("div","right");
-  right.append(el("span",`pill ${r.today.cls}`,r.today.label),
-               el("div",`badge ${r.today.cls}`,String(r.today.show)));
-  top.append(el("div","name",r.name),right);
+  top.append(el("div","name",r.name));
   card.append(top);
 
   if(r.error){
@@ -207,20 +202,34 @@ function renderRegion(r){
   }
 
   const d=r.data.daily;
+
+  /* show headline KPIs for today only (no overall “combined” score) */
   const kpis=el("div","kpis");
   kpis.innerHTML=
-   `<div class='k'><span class='tiny'>Suitability</span><b>${r.today.label} (${r.today.show})</b></div>
-    <div class='k'><span class='tiny'>Temp (max/min)</span><b>${d.temperature_2m_max[0].toFixed(0)}° / ${d.temperature_2m_min[0].toFixed(0)}°</b></div>
+   `<div class='k'><span class='tiny'>Temp (max/min)</span><b>${d.temperature_2m_max[0].toFixed(0)}° / ${d.temperature_2m_min[0].toFixed(0)}°</b></div>
     <div class='k'><span class='tiny'>Wind (max)</span><b>${Math.round(d.wind_speed_10m_max[0])} km/h</b></div>
     <div class='k'><span class='tiny'>Rain (sum)</span><b>${d.precipitation_sum[0].toFixed(1)} mm</b></div>`;
   card.append(kpis);
 
+  /* per-day tiles with per-day scores */
   const days=el("div","days");
   const fmt={weekday:"short"};
   for(let i=0;i<d.time.length;i++){
+    const dayScore=scoreSuitability({
+      wind:d.wind_speed_10m_max[i],
+      precip:d.precipitation_sum[i],
+      tmax:d.temperature_2m_max[i],
+      tmin:d.temperature_2m_min[i],
+      cloud:[45,48].includes(d.weather_code[i])?95:([0].includes(d.weather_code[i])?15:60)
+    });
     const cell=el("div","d");
+    // score badge
+    const badge=el("div",`score ${dayScore.cls}`,String(dayScore.show));
+    cell.append(badge);
+
     const dt=new Date(d.time[i]);
     cell.append(el("div","dt",dt.toLocaleDateString(undefined,fmt)));
+
     const tintCls=iconTintByWeatherCode(d.weather_code[i]);
     const wx=el("div","wx");
     const ic=document.createElement("span");
@@ -228,6 +237,7 @@ function renderRegion(r){
     ic.innerHTML=I[iconKey(d.weather_code[i])];
     wx.append(ic,el("div","t",`${d.temperature_2m_max[i].toFixed(0)}° / ${d.temperature_2m_min[i].toFixed(0)}°`));
     cell.append(wx);
+
     cell.append(el("div","tiny",`${d.precipitation_sum[i].toFixed(1)} mm · ${Math.round(d.wind_speed_10m_max[i])} km/h`));
     days.append(cell);
   }

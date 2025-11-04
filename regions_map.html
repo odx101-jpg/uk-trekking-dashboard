@@ -4,31 +4,47 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>UK Trekking – Map View</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin>
 <style>
   :root{
     --bg:#0e1116;--panel:#151a23;--line:#242b38;
     --text:#e9edf3;--muted:#a9b3c3;
     --good:#25c28a;--warn:#ffc24d;--bad:#ff4d4f;--accent:#46a3ff;
   }
-  *{box-sizing:border-box}
+  html,body{height:100%}
   body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial}
   header{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;justify-content:space-between}
   h1{margin:0;font-size:18px}
-  a, a:visited{color:var(--accent);text-decoration:none}
-  #map{height:calc(100vh - 64px); width:100%}
+  a,a:visited{color:var(--accent);text-decoration:none}
+  #map{height:calc(100% - 64px);width:100%}
+
   .legend{
-    position:absolute; bottom:16px; right:16px; background:var(--panel); border:1px solid var(--line);
-    color:var(--text); padding:10px 12px; border-radius:10px; font-size:12px; box-shadow:0 1px 0 #0b0f16;
+    position:absolute; bottom:16px; right:16px; background:var(--panel);
+    border:1px solid var(--line); color:var(--text); padding:10px 12px;
+    border-radius:10px; font-size:12px; box-shadow:0 1px 0 #0b0f16;
   }
   .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
   .dot.good{background:var(--good)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
-  .popup{font-size:13px; line-height:1.35; color:#e9edf3}
-  .meta{color:var(--muted); font-size:12px}
-  .scoreBadge{
-    display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px;
-    border-radius:50%; font-weight:800; font-size:12px; color:#fff; margin-left:8px;
+  .meta{color:var(--muted);font-size:12px}
+
+  /* Numbered badge marker */
+  .num-marker{
+    width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:12px;color:#0b1a14;border:2px solid #00000040;
+    box-shadow:0 1px 0 #0009,inset 0 -3px 8px #0003;background:var(--good);
   }
+  .num-marker.warn{ background:var(--warn); color:#111 }
+  .num-marker.bad { background:var(--bad);  color:#fff }
+
+  /* Label pill (tooltip) */
+  .lbl{padding:4px 8px;border-radius:999px;font-size:12px;font-weight:700;color:#0b1a14;
+       border:1px solid #00000033;box-shadow:0 1px 0 #0009, inset 0 -2px 6px #0004;background:var(--good)}
+  .lbl.warn{background:var(--warn);color:#111}
+  .lbl.bad{background:var(--bad);color:#fff}
+  .lbl .s{margin-left:6px;padding:2px 6px;border-radius:10px;background:#0e6f52;color:#fff;font-weight:800}
+  .lbl.warn .s{background:#b87e12;color:#111}
+  .lbl.bad .s{background:#7e2224;color:#fff}
+  .leaflet-tooltip.lbl-tip{background:transparent;border:none;box-shadow:none}
 </style>
 </head>
 <body>
@@ -44,14 +60,13 @@
 <div class="legend">
   <div><span class="dot good"></span>Very good / Good (≥55)</div>
   <div><span class="dot warn"></span>Fair (40–54)</div>
-  <div><span class="dot bad"></span>High risk (<40)</div>
+  <div><span class="dot bad"></span>High risk (&lt;40)</div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin></script>
 <script>
-/* -------- Top 12 regions -------- */
+/* Regions (Upper Basildon removed) */
 const regions = [
-  { name:"Upper Basildon (RG8 8NT)",   lat:51.481,  lon:-1.142 },
   { name:"South Downs & Chilterns",    lat:51.000,  lon:-0.900 },
   { name:"Peak District (Edale)",      lat:53.364,  lon:-1.816 },
   { name:"Snowdonia / Eryri (Llanberis)", lat:53.118, lon:-4.127 },
@@ -65,96 +80,84 @@ const regions = [
   { name:"Norfolk Broads (Wroxham)",   lat:52.710,  lon: 1.410 }
 ];
 
-/* -------- Scoring (never zero; shows "<10") -------- */
+/* Score (floor <10 shown) */
 function scoreSuitability({ wind, precip, tmax, tmin, cloud }){
-  let s = 100;
-  if (wind > 35) s -= (wind - 35) * 0.8;
-  if (wind > 50) s -= (wind - 50) * 0.7;
-  if (precip > 0)  s -= Math.min(precip, 10) * 1.0;
-  if (precip > 10) s -= (precip - 10) * 2.0;
-  if (tmax < 2 || tmin < -2) s -= 10;
-  if (tmax > 24) s -= (tmax - 24) * 1.0;
-  if (cloud > 90) s -= 3;
-  s = Math.round(Math.max(5, Math.min(100, s)));
-  const show = s <= 10 ? "<10" : s;
-  const label = s >= 75 ? "Very good" : s >= 55 ? "Good" : s >= 40 ? "Fair" : "High risk";
-  const cls = s >= 55 ? "good" : s >= 40 ? "warn" : "bad";
+  let s=100;
+  if(wind>35)s-=(wind-35)*0.8;
+  if(wind>50)s-=(wind-50)*0.7;
+  if(precip>0)s-=Math.min(precip,10)*1.0;
+  if(precip>10)s-=(precip-10)*2.0;
+  if(tmax<2||tmin<-2)s-=10;
+  if(tmax>24)s-=(tmax-24)*1.0;
+  if(cloud>90)s-=3;
+  s=Math.round(Math.max(5,Math.min(100,s)));
+  const show=s<=10?"<10":s;
+  const label=s>=75?"Very good":s>=55?"Good":s>=40?"Fair":"High risk";
+  const cls=s>=55?"good":s>=40?"warn":"bad";
   return { s, show, label, cls };
 }
 
-/* -------- Map -------- */
-const map = L.map('map', {
-  center:[54.5,-3], zoom:6, zoomControl:true
-});
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-  attribution:'&copy; OpenStreetMap'
-}).addTo(map);
+/* Map */
+const map = L.map('map', { center:[54.5,-3], zoom:6, zoomControl:true });
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  { attribution:'&copy; OpenStreetMap' }).addTo(map);
 
-/* Colour helpers */
-const clsToColor = { good:'#25c28a', warn:'#ffc24d', bad:'#ff4d4f' };
-const clsText    = { good:'#0b1a14', warn:'#111', bad:'#fff' }; // badge text where needed
-
-/* -------- Fetch, score, and plot -------- */
-(async function(){
+/* Fetch + render */
+(async()=>{
   const items=[];
   for(const r of regions){
     try{
-      const url = new URL("https://api.open-meteo.com/v1/forecast");
-      url.search = new URLSearchParams({
+      const url=new URL("https://api.open-meteo.com/v1/forecast");
+      url.search=new URLSearchParams({
         latitude:r.lat, longitude:r.lon, timezone:"auto",
         daily:"weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max",
         forecast_days:6
       }).toString();
-      const res = await fetch(url);
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      const data = await res.json();
-      const d = data.daily;
-
-      const today = scoreSuitability({
+      const res=await fetch(url);
+      if(!res.ok) throw new Error(res.status);
+      const data=await res.json(), d=data.daily;
+      const today=scoreSuitability({
         wind:d.wind_speed_10m_max[0],
         precip:d.precipitation_sum[0],
         tmax:d.temperature_2m_max[0],
         tmin:d.temperature_2m_min[0],
         cloud:[45,48].includes(d.weather_code[0])?95:([0].includes(d.weather_code[0])?15:60)
       });
-
-      items.push({ ...r, today, data });
+      items.push({...r,today,data});
     }catch(e){
-      console.error(r.name, e);
-      items.push({ ...r, today:{s:5,show:"<10",label:"High risk",cls:"bad"}, error:true });
+      items.push({...r,today:{s:5,show:"<10",label:"High risk",cls:"bad"},error:true});
     }
   }
 
-  // Sort best → worst and plot
-  items.sort((a,b)=>b.today.s - a.today.s);
+  // Best → worst
+  items.sort((a,b)=>b.today.s-a.today.s);
 
   items.forEach(item=>{
-    const color = clsToColor[item.today.cls];
-    const marker = L.circleMarker([item.lat,item.lon],{
-      radius:10, weight:2, color:color, fillColor:color, fillOpacity:0.85
-    }).addTo(map);
+    // DivIcon with number
+    const html = `<div class="num-marker ${item.today.cls}">${item.today.show}</div>`;
+    const icon = L.divIcon({
+      className:"",      // no extra wrapper class
+      html,
+      iconSize:[28,28],
+      iconAnchor:[14,14] // center align
+    });
 
-    const badgeStyle = `
-      display:inline-flex;align-items:center;justify-content:center;
-      width:22px;height:22px;border-radius:50%;
-      background:${color};color:${clsText[item.today.cls]};font-weight:800;font-size:11px;margin-left:6px;`;
+    const marker = L.marker([item.lat,item.lon],{icon}).addTo(map);
 
-    const html = `
-      <div class="popup">
-        <div><strong>${item.name}</strong>
-          <span style="${badgeStyle}">${item.today.show}</span>
-        </div>
-        <div class="meta">${item.today.label}</div>
-        ${item.error ? '<div class="meta" style="color:#ff8080">Data unavailable.</div>' : `
-          <div class="meta">
-            Max/Min: ${item.data.daily.temperature_2m_max[0].toFixed(0)}° /
-            ${item.data.daily.temperature_2m_min[0].toFixed(0)}° ·
-            Wind: ${Math.round(item.data.daily.wind_speed_10m_max[0])} km/h ·
-            Rain: ${item.data.daily.precipitation_sum[0].toFixed(1)} mm
-          </div>
-        `}
+    // Tooltip label pill
+    const tip = `<span class="lbl ${item.today.cls}">
+      ${item.name}<span class="s">${item.today.show}</span></span>`;
+    marker.bindTooltip(tip,{permanent:true,direction:'top',className:'lbl-tip',offset:[0,-12]}).openTooltip();
+
+    // Popup details
+    const details = item.error ? '<div class="meta" style="color:#ff8080">Data unavailable.</div>' :
+      `<div class="meta">
+        Max/Min: ${item.data.daily.temperature_2m_max[0].toFixed(0)}° /
+        ${item.data.daily.temperature_2m_min[0].toFixed(0)}° ·
+        Wind: ${Math.round(item.data.daily.wind_speed_10m_max[0])} km/h ·
+        Rain: ${item.data.daily.precipitation_sum[0].toFixed(1)} mm
       </div>`;
-    marker.bindPopup(html);
+    marker.bindPopup(`<strong>${item.name}</strong> — ${item.today.label}${details}`);
   });
 })();
 </script>

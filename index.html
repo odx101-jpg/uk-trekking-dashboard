@@ -91,29 +91,64 @@
 </footer>
 
 <script>
-/* --- Regions (add/edit freely; coords are approximate) --- */
+/* --- Regions (comprehensive UK list) --- */
 const regions = [
-  { name:"Upper Basildon (RG8 8NT)", lat:51.481, lon:-1.142 },   // your location
-  { name:"Forest of Bowland (Lancashire)", lat:53.993, lon:-2.573 },
-  { name:"Yorkshire Dales (Settle)", lat:54.068, lon:-2.278 },
-  { name:"Lake District (Keswick)", lat:54.6039, lon:-3.1347 },
-  { name:"Snowdonia (Llanberis)", lat:53.118, lon:-4.127 },
+  { name:"Upper Basildon (RG8 8NT)", lat:51.481, lon:-1.142 },
+
+  // South & Midlands
+  { name:"South Downs & Chilterns", lat:51.000, lon:-0.900 },
+  { name:"New Forest (Lyndhurst)", lat:50.872, lon:-1.576 },
+  { name:"Cotswolds (Stow-on-the-Wold)", lat:51.930, lon:-1.720 },
+  { name:"Malvern Hills", lat:52.110, lon:-2.330 },
+  { name:"Mendip Hills (Cheddar)", lat:51.280, lon:-2.770 },
+
+  // South West
+  { name:"Dartmoor (Princetown)", lat:50.546, lon:-3.990 },
+  { name:"Exmoor (Simonsbath)", lat:51.120, lon:-3.690 },
+  { name:"Bodmin Moor (Minions)", lat:50.517, lon:-4.455 },
+
+  // Wales
+  { name:"Gower (Rhossili)", lat:51.560, lon:-4.290 },
+  { name:"Pembrokeshire Coast (St Davids)", lat:51.880, lon:-5.270 },
+  { name:"Brecon Beacons (Storey Arms)", lat:51.885, lon:-3.471 },
+  { name:"Black Mountains (Crickhowell)", lat:51.860, lon:-3.140 },
+  { name:"Snowdonia / Eryri (Llanberis)", lat:53.118, lon:-4.127 },
+
+  // North & Midlands England
   { name:"Peak District (Edale)", lat:53.364, lon:-1.816 },
-  { name:"Brecon Beacons (Storey Arms)", lat:51.885, lon:-3.471 }
+  { name:"Yorkshire Dales (Settle)", lat:54.068, lon:-2.278 },
+  { name:"North York Moors (Helmsley)", lat:54.245, lon:-1.056 },
+  { name:"Howgill Fells (Sedbergh)", lat:54.322, lon:-2.527 },
+  { name:"Forest of Bowland (Dunsop Bridge)", lat:53.943, lon:-2.502 },
+  { name:"Lake District (Keswick)", lat:54.6039, lon:-3.1347 },
+
+  // East England
+  { name:"Norfolk Broads (Wroxham)", lat:52.710, lon:1.410 },
+  { name:"Lincolnshire Wolds (Louth)", lat:53.366, lon:-0.004 },
+  { name:"Suffolk Coast & Heaths (Dunwich)", lat:52.280, lon:1.620 },
+
+  // Scotland
+  { name:"Pentland Hills (Flotterstone)", lat:55.850, lon:-3.230 },
+  { name:"Scottish Borders (Peebles)", lat:55.652, lon:-3.188 },
+  { name:"Loch Lomond & The Trossachs (Callander)", lat:56.244, lon:-4.216 },
+  { name:"Cairngorms (Aviemore)", lat:57.190, lon:-3.830 },
+  { name:"Northumberland (Cheviot Hills, Wooler)", lat:55.548, lon:-2.013 },
+
+  // Northern Ireland
+  { name:"Mourne Mountains (Newcastle)", lat:54.211, lon:-5.889 }
 ];
 
-/* --- Compact, high-contrast icons (inline SVG) --- */
+/* --- Weather icon set (inline SVG) --- */
 const I={
   sun:'<svg viewBox="0 0 24 24" class="ico" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4" fill="currentColor"/><g opacity=".9"><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></g></svg>',
   cloud:'<svg viewBox="0 0 24 24" class="ico" fill="currentColor"><path d="M7.5 18a4.5 4.5 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 9.5c2.2 0 4 1.8 4 4S20.2 18 18 18z"/></svg>',
   rain:'<svg viewBox="0 0 24 24" class="ico" fill="currentColor"><path d="M7.5 14a4.5 4.5 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 5.5c2.2 0 4 1.8 4 4S20.2 14 18 14z"/><g opacity=".95"><path d="M7 16l-1 3m5-3l-1 3m5-3l-1 3" stroke="#7cc7ff" stroke-width="2" stroke-linecap="round" fill="none"/></g></svg>',
-  drizzle:'<svg viewBox="0 0 24 24" class="ico" fill="currentColor"><path d="M7.5 14a4.5 4.5 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 5.5c2.2 0 4 1.8 4 4S20.2 14 18 14z"/><g opacity=".9"><path d="M7 16l-.6 1.5m4.6-1.5l-.6 1.5m4.6-1.5l-.6 1.5" stroke="#9fd3ff" stroke-width="2" stroke-linecap="round" fill="none"/></g></svg>',
+  drizzle:'<svg viewBox="0 0 24 24" class="ico" fill="currentColor"><path d="M7.5 14a4.5 4 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 5.5c2.2 0 4 1.8 4 4S20.2 14 18 14z"/><g opacity=".9"><path d="M7 16l-.6 1.5m4.6-1.5l-.6 1.5m4.6-1.5l-.6 1.5" stroke="#9fd3ff" stroke-width="2" stroke-linecap="round" fill="none"/></g></svg>',
   storm:'<svg viewBox="0 0 24 24" class="ico" fill="currentColor"><path d="M7.5 14a4.5 4.5 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 5.5c2.2 0 4 1.8 4 4S20.2 14 18 14z"/><path d="M10 16l-2 5 5-3-2 5" stroke="#ffd54a" stroke-width="1.8" fill="none" stroke-linejoin="round"/></svg>',
   snow:'<svg viewBox="0 0 24 24" class="ico" fill="currentColor"><path d="M7.5 14a4.5 4.5 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 5.5c2.2 0 4 1.8 4 4S20.2 14 18 14z"/><g opacity=".95" fill="#bde0ff"><circle cx="7" cy="17" r="1.2"/><circle cx="12" cy="17" r="1.2"/><circle cx="17" cy="17" r="1.2"/></g></svg>',
   fog:'<svg viewBox="0 0 24 24" class="ico" fill="currentColor"><path d="M7.5 14a4.5 4.5 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 5.5c2.2 0 4 1.8 4 4S20.2 14 18 14z"/><g opacity=".9"><rect x="5" y="16" width="14" height="1.8" rx=".9"/><rect x="4" y="19" width="12" height="1.8" rx=".9"/></g></svg>'
 };
 
-/* Weather code → icon */
 function codeToIcon(code){
   if([0].includes(code)) return I.sun;
   if([1,2,3].includes(code)) return I.cloud;
@@ -125,95 +160,67 @@ function codeToIcon(code){
   return I.cloud;
 }
 
-/* Suitability scoring */
-function scoreSuitability({wind,precip,tmax,tmin,cloud}){
-  let s=100;
-  if(wind>30)s-=(wind-30)*1.1;
-  if(precip>2)s-=(precip-2)*10;
-  if(tmax<2||tmin<-2)s-=15;
-  if(tmax>24)s-=(tmax-24)*1.5;
-  if(cloud>90)s-=5;
-  s=Math.max(0,Math.min(100,Math.round(s)));
-  const label=s>=75?'Very good':s>=55?'Good':s>=40?'Fair':'High risk';
-  const cls=s>=75?'good':s>=55?'good':s>=40?'warn':'bad';
-  return {s,label,cls};
+/* --- Improved suitability scoring (no zeros) --- */
+function scoreSuitability({ wind, precip, tmax, tmin, cloud }) {
+  let s = 100;
+  if (wind > 35) s -= (wind - 35) * 0.8;
+  if (wind > 50) s -= (wind - 50) * 0.7;
+  if (precip > 0)  s -= Math.min(precip, 10) * 1.0;
+  if (precip > 10) s -= (precip - 10) * 2.0;
+  if (tmax < 2 || tmin < -2) s -= 10;
+  if (tmax > 24) s -= (tmax - 24) * 1.0;
+  if (cloud > 90) s -= 3;
+  s = Math.round(Math.max(5, Math.min(100, s)));
+  const show = s <= 10 ? "<10" : s;
+  const label = s >= 75 ? "Very good" : s >= 55 ? "Good" : s >= 40 ? "Fair" : "High risk";
+  const cls = s >= 55 ? "good" : s >= 40 ? "warn" : "bad";
+  return { s, label, cls, show };
 }
 
-/* DOM helpers */
-const cardsEl=document.getElementById('cards');
+const cardsEl=document.getElementById("cards");
 function el(t,c,x){const e=document.createElement(t);if(c)e.className=c;if(x)e.textContent=x;return e;}
 
-/* Fetch */
 async function fetchRegion(r){
-  const url=new URL('https://api.open-meteo.com/v1/forecast');
+  const url=new URL("https://api.open-meteo.com/v1/forecast");
   url.search=new URLSearchParams({
-    latitude:r.lat,longitude:r.lon,timezone:'auto',
-    daily:'weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max',
+    latitude:r.lat,longitude:r.lon,timezone:"auto",
+    daily:"weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max",
     forecast_days:6
   }).toString();
   const res=await fetch(url);
-  if(!res.ok) throw new Error('HTTP '+res.status);
+  if(!res.ok)throw new Error("HTTP "+res.status);
   return res.json();
 }
 
-/* Build & sort */
 async function buildAll(){
   const results=[];
   for(const r of regions){
     try{
       const data=await fetchRegion(r);
       const d=data.daily;
-      const tmax=d.temperature_2m_max[0], tmin=d.temperature_2m_min[0];
-      const precip=d.precipitation_sum[0], wind=d.wind_speed_10m_max[0];
+      const tmax=d.temperature_2m_max[0],tmin=d.temperature_2m_min[0];
+      const precip=d.precipitation_sum[0],wind=d.wind_speed_10m_max[0];
       const code=d.weather_code[0];
       const cloudProxy=[45,48].includes(code)?95:([0].includes(code)?15:60);
       const sc=scoreSuitability({wind,precip,tmax,tmin,cloud:cloudProxy});
       results.push({...r,data,score:sc});
-    }catch(e){ console.error(r.name,e); }
+    }catch(e){console.error(r.name,e);}
   }
   results.sort((a,b)=>b.score.s-a.score.s);
   results.forEach(renderRegion);
 }
 
-/* Render card */
 function renderRegion(r){
   const d=r.data.daily;
-  const card=el('div','card');
-  const top=el('div','row');
+  const card=el("div","card");
+  const top=el("div","row");
 
-  const right=el('div','right');
-  const pill=el('span',`pill ${r.score.cls}`,r.score.label);
-  const badge=el('div',`badge ${r.score.cls}`,String(r.score.s));
+  const right=el("div","right");
+  const pill=el("span",`pill ${r.score.cls}`,r.score.label);
+  const badge=el("div",`badge ${r.score.cls}`,String(r.score.show));
   right.append(pill,badge);
 
-  top.append(el('div','name',r.name), right);
+  top.append(el("div","name",r.name),right);
   card.append(top);
 
-  const kpis=el('div','kpis');
-  kpis.innerHTML=`<div class='k'><span class='tiny'>Suitability</span><b>${r.score.label} (${r.score.s})</b></div>
-  <div class='k'><span class='tiny'>Temp (max/min)</span><b>${d.temperature_2m_max[0].toFixed(0)}° / ${d.temperature_2m_min[0].toFixed(0)}°</b></div>
-  <div class='k'><span class='tiny'>Wind (max)</span><b>${Math.round(d.wind_speed_10m_max[0])} km/h</b></div>
-  <div class='k'><span class='tiny'>Rain (sum)</span><b>${d.precipitation_sum[0].toFixed(1)} mm</b></div>`;
-  card.append(kpis);
-
-  const days=el('div','days');
-  const fmt={weekday:'short'};
-  for(let i=0;i<d.time.length;i++){
-    const cell=el('div','d');
-    const dt=new Date(d.time[i]);
-    cell.append(el('div','dt',dt.toLocaleDateString(undefined,fmt)));
-    const wx=el('div','wx');
-    const ic=el('span'); ic.innerHTML=codeToIcon(d.weather_code[i]);
-    wx.append(ic, el('div','t',`${d.temperature_2m_max[i].toFixed(0)}° / ${d.temperature_2m_min[i].toFixed(0)}°`));
-    cell.append(wx);
-    cell.append(el('div','tiny',`${d.precipitation_sum[i].toFixed(1)} mm · ${Math.round(d.wind_speed_10m_max[i])} km/h`));
-    days.append(cell);
-  }
-  card.append(days);
-  cardsEl.append(card);
-}
-
-buildAll();
-</script>
-</body>
-</html>
+  const

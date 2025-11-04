@@ -74,6 +74,12 @@
   .tiny{font-size:12px;color:var(--muted)}
   footer{padding:14px 16px;color:var(--muted);font-size:12px}
   .src a{color:var(--accent);text-decoration:none}
+
+  /* ✅ Fix SVG tint for all browsers */
+  .ico svg { fill: currentColor; stroke: currentColor; }
+  .ico.good, .ico.good svg { color: var(--good); fill: var(--good); stroke: var(--good); }
+  .ico.warn, .ico.warn svg { color: var(--warn); fill: var(--warn); stroke: var(--warn); }
+  .ico.bad,  .ico.bad  svg { color: var(--bad);  fill: var(--bad);  stroke: var(--bad); }
 </style>
 </head>
 <body>
@@ -82,7 +88,7 @@
   <div class="sub">
     Sorted by suitability · Per-day coloured icons · Data:
     <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo</a> ·
-    <a href="./regions_map.html">Map view</a>
+    <a href="regions_map.html">Map view</a>
   </div>
 </header>
 
@@ -93,7 +99,6 @@
 </footer>
 
 <script>
-/* -------- Regions (Upper Basildon removed) -------- */
 const regions = [
   { name:"South Downs & Chilterns", lat:51.000, lon:-0.900 },
   { name:"Peak District (Edale)", lat:53.364, lon:-1.816 },
@@ -108,7 +113,6 @@ const regions = [
   { name:"Norfolk Broads (Wroxham)", lat:52.710, lon:1.410 }
 ];
 
-/* -------- Icons using currentColor -------- */
 const I={
   sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4" fill="currentColor"/><g opacity=".9"><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></g></svg>',
   cloud:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 18a4.5 4.5 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 9.5c2.2 0 4 1.8 4 4S20.2 18 18 18z"/></svg>',
@@ -128,7 +132,6 @@ function iconKey(code){
   return 'cloud';
 }
 
-/* -------- Scoring -------- */
 function scoreSuitability({ wind, precip, tmax, tmin, cloud }){
   let s=100;
   if(wind>35)s-=(wind-35)*0.8;
@@ -145,7 +148,6 @@ function scoreSuitability({ wind, precip, tmax, tmin, cloud }){
   return{ s,show,label,cls };
 }
 
-/* -------- Tint rule (clouds + light/medium rain = green) -------- */
 function iconTintByWeatherCode(code){
   if([1,2,3,45,48].includes(code)) return 'good';
   if([51,53,55,56,57,61,63,65,80,81,82].includes(code)) return 'good';
@@ -154,7 +156,6 @@ function iconTintByWeatherCode(code){
   return 'good';
 }
 
-/* -------- Build -------- */
 const cardsEl=document.getElementById("cards");
 function el(t,c,x){const e=document.createElement(t);if(c)e.className=c;if(x)e.textContent=x;return e;}
 

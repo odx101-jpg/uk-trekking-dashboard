@@ -16,9 +16,11 @@
   .grid{display:grid;gap:20px;padding:16px;grid-template-columns:repeat(2,minmax(420px,1fr));justify-content:center;align-items:start;max-width:1400px;margin:0 auto;}
   @media (max-width:980px){.grid{grid-template-columns:1fr}}
 
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 1px 0 #0b0f16;display:flex;flex-direction:column}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 1px 0 #0b0f16;display:flex;flex-direction:column;position:relative}
   .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
   .name{font-weight:700}
+  .del{border:none;background:#0000;color:#9aa3b5;cursor:pointer;font-size:16px;padding:2px 6px;border-radius:6px}
+  .del:hover{background:#202938;color:#ffd4d4}
 
   .kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:10px 0 12px}
   .k{border:1px solid var(--line);border-radius:10px;padding:8px 10px}
@@ -28,7 +30,6 @@
   .d{position:relative;background:#0c1016;border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;justify-content:space-between;min-height:120px}
   .dt{font-size:12px;color:var(--muted)}
   .wx{display:flex;align-items:center;gap:8px}
-
   .ico{width:26px;height:26px;display:inline-block;color:var(--muted);filter:drop-shadow(0 0 2px #0008)}
   .ico svg{fill:currentColor;stroke:currentColor}
   .t{font-weight:600}
@@ -41,10 +42,19 @@
   footer{padding:14px 16px;color:var(--muted);font-size:12px}
   .src a{color:var(--accent);text-decoration:none}
 
-  /* Floating buttons */
+  /* Floating buttons & add panel */
   .fab{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:10px;z-index:9999}
   .btn{padding:9px 12px;border-radius:10px;border:1px solid #215a9e;background:linear-gradient(180deg,#4aa5ff,#2e7fd6);color:#fff;font-weight:800;text-decoration:none;box-shadow:0 2px 10px #0006}
   .top{padding:10px 12px;border-radius:999px;border:1px solid #2a6c62;background:linear-gradient(180deg,#26c29d,#129d7d);color:#062d24;font-weight:800;text-decoration:none;box-shadow:0 2px 10px #0006}
+
+  .panel{position:fixed;right:16px;bottom:120px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:0 3px 18px #0009;min-width:260px;display:none;z-index:9999}
+  .panel h3{margin:0 0 8px 0;font-size:14px}
+  .rowi{display:flex;gap:6px;margin-bottom:6px}
+  .panel input{flex:1;min-width:0;background:#0c1016;border:1px solid var(--line);color:var(--text);padding:6px 8px;border-radius:8px}
+  .panel .actions{display:flex;gap:8px;justify-content:flex-end}
+  .panel button{background:#2f7fde;color:#fff;border:1px solid #215a9e;border-radius:8px;padding:6px 10px;font-weight:700;cursor:pointer}
+  .panel .reset{background:#3a3f4a;border-color:#303542}
+  .show{display:block}
 </style>
 </head>
 <body>
@@ -57,40 +67,162 @@
 
 <footer><span class="src">Adjust weights in <code>scoreSuitability()</code>. Scores floor at &lt;10.</span></footer>
 
-<!-- Floating buttons -->
+<!-- Add / Links / Top -->
 <div class="fab">
   <a class="btn" href="regions_map.html" title="See scores on the UK map">Regions Map</a>
+  <a class="btn" href="#" id="addBtn">＋ Add location</a>
   <a class="top" href="#top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑ Top</a>
 </div>
 
+<!-- Add location panel -->
+<div class="panel" id="addPanel">
+  <h3>Add location</h3>
+  <div class="rowi"><input id="nm" placeholder="Name e.g. Gwydyr Forest" /></div>
+  <div class="rowi"><input id="lt" placeholder="Latitude e.g. 53.102" /><input id="ln" placeholder="Longitude e.g. -3.806" /></div>
+  <div class="actions">
+    <button class="reset" id="resetBtn" title="Restore original list">Reset</button>
+    <button id="saveBtn">Add</button>
+  </div>
+</div>
+
 <script>
-const regions=[{name:"South Downs & Chilterns",lat:51,lon:-0.9},{name:"Peak District (Edale)",lat:53.364,lon:-1.816},{name:"Snowdonia / Eryri (Llanberis)",lat:53.118,lon:-4.127},{name:"Lake District (Keswick)",lat:54.6039,lon:-3.1347},{name:"Yorkshire Dales (Settle)",lat:54.068,lon:-2.278},{name:"Forest of Bowland (Dunsop Bridge)",lat:53.943,lon:-2.502},{name:"Brecon Beacons (Storey Arms)",lat:51.885,lon:-3.471},{name:"North York Moors (Helmsley)",lat:54.245,lon:-1.056},{name:"Dartmoor (Princetown)",lat:50.546,lon:-3.99},{name:"Exmoor (Simonsbath)",lat:51.12,lon:-3.69},{name:"Norfolk Broads (Wroxham)",lat:52.71,lon:1.41}];
+/* ---- Defaults (now includes Gwydyr Forest) ---- */
+const defaultRegions = [
+  { name:"South Downs & Chilterns", lat:51.000, lon:-0.900 },
+  { name:"Peak District (Edale)", lat:53.364, lon:-1.816 },
+  { name:"Snowdonia / Eryri (Llanberis)", lat:53.118, lon:-4.127 },
+  { name:"Lake District (Keswick)", lat:54.6039, lon:-3.1347 },
+  { name:"Yorkshire Dales (Settle)", lat:54.068, lon:-2.278 },
+  { name:"Forest of Bowland (Dunsop Bridge)", lat:53.943, lon:-2.502 },
+  { name:"Brecon Beacons (Storey Arms)", lat:51.885, lon:-3.471 },
+  { name:"North York Moors (Helmsley)", lat:54.245, lon:-1.056 },
+  { name:"Dartmoor (Princetown)", lat:50.546, lon:-3.990 },
+  { name:"Exmoor (Simonsbath)",  lat:51.120, lon:-3.690 },
+  { name:"Norfolk Broads (Wroxham)", lat:52.710, lon:1.410 },
+  { name:"Gwydyr Forest (Betws-y-Coed)", lat:53.102, lon:-3.806 }
+];
+const STORAGE_KEY = "trek_regions";
 
-const I={sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4" fill="currentColor"/><g opacity=".9"><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></g></svg>',cloud:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 18a4.5 4.5 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 9.5c2.2 0 4 1.8 4 4S20.2 18 18 18z"/></svg>',rain:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 14a4.5 4.5 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 5.5c2.2 0 4 1.8 4 4S20.2 14 18 14z"/><path d="M7 16l-1 3m5-3l-1 3m5-3l-1 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>',drizzle:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 14a4.5 4.5 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 5.5c2.2 0 4 1.8 4 4S20.2 14 18 14z"/><path d="M7 16l-.6 1.5m4.6-1.5l-.6 1.5m4.6-1.5l-.6 1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>',storm:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 14a4.5 4.5 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 5.5c2.2 0 4 1.8 4 4S20.2 14 18 14z"/><path d="M10 16l-2 5 5-3-2 5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/></svg>',snow:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 14a4.5 4.5 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 5.5c2.2 0 4 1.8 4 4S20.2 14 18 14z"/><circle cx="7" cy="17" r="1.2"/><circle cx="12" cy="17" r="1.2"/><circle cx="17" cy="17" r="1.2"/></svg>'};
-function iconKey(c){if([0].includes(c))return"sun";if([1,2,3,45,48].includes(c))return"cloud";if([51,53,55,56,57].includes(c))return"drizzle";if([61,63,65,80,81,82].includes(c))return"rain";if([66,67].includes(c))return"rain";if([71,73,75,77,85,86].includes(c))return"snow";if([95,96,99].includes(c))return"storm";return"cloud"}
+function loadRegions(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return [...defaultRegions];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) && arr.length ? arr : [...defaultRegions];
+  }catch{ return [...defaultRegions]; }
+}
+function saveRegions(list){ localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
 
-function scoreSuitability({wind,precip,tmax,tmin,cloud}){let s=100;if(wind>35)s-=(wind-35)*0.8;if(wind>50)s-=(wind-50)*0.7;if(precip>0)s-=Math.min(precip,10)*1;if(precip>10)s-=(precip-10)*2;if(tmax<2||tmin<-2)s-=10;if(tmax>24)s-=(tmax-24)*1;if(cloud>90)s-=3;s=Math.round(Math.max(5,Math.min(100,s)));const show=s<=10?"<10":s;const cls=s>=55?"good":s>=40?"warn":"bad";return{ s,show,cls }}
+/* ---- Icons (neutral) ---- */
+const I={
+  sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4" fill="currentColor"/><g opacity=".9"><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></g></svg>',
+  cloud:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 18a4.5 4.5 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 9.5c2.2 0 4 1.8 4 4S20.2 14 18 14z"/></svg>',
+  rain:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 14a4.5 4.5 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 5.5c2.2 0 4 1.8 4 4S20.2 14 18 14z"/><path d="M7 16l-1 3m5-3l-1 3m5-3l-1 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>',
+  drizzle:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 14a4.5 4.5 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 5.5c2.2 0 4 1.8 4 4S20.2 14 18 14z"/><path d="M7 16l-.6 1.5m4.6-1.5l-.6 1.5m4.6-1.5l-.6 1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>',
+  storm:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 14a4.5 4.5 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 5.5c2.2 0 4 1.8 4 4S20.2 14 18 14z"/><path d="M10 16l-2 5 5-3-2 5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/></svg>',
+  snow:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 14a4.5 4.5 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 5.5c2.2 0 4 1.8 4 4S20.2 14 18 14z"/><circle cx="7" cy="17" r="1.2"/><circle cx="12" cy="17" r="1.2"/><circle cx="17" cy="17" r="1.2"/></svg>'
+};
+function iconKey(code){
+  if([0].includes(code)) return 'sun';
+  if([1,2,3,45,48].includes(code)) return 'cloud';
+  if([51,53,55,56,57].includes(code)) return 'drizzle';
+  if([61,63,65,80,81,82].includes(code)) return 'rain';
+  if([66,67].includes(code)) return 'rain';
+  if([71,73,75,77,85,86].includes(code)) return 'snow';
+  if([95,96,99].includes(code)) return 'storm';
+  return 'cloud';
+}
 
-const cardsEl=document.getElementById("cards");function el(t,c,x){const e=document.createElement(t);if(c)e.className=c;if(x)e.textContent=x;return e;}
+/* ---- Scoring ---- */
+function scoreSuitability({ wind, precip, tmax, tmin, cloud }){
+  let s=100;
+  if(wind>35)s-=(wind-35)*0.8;
+  if(wind>50)s-=(wind-50)*0.7;
+  if(precip>0)s-=Math.min(precip,10)*1.0;
+  if(precip>10)s-=(precip-10)*2.0;
+  if(tmax<2||tmin<-2)s-=10;
+  if(tmax>24)s-=(tmax-24)*1.0;
+  if(cloud>90)s-=3;
+  s=Math.round(Math.max(5,Math.min(100,s)));
+  const show=s<=10?"<10":s;
+  const cls=s>=55?"good":s>=40?"warn":"bad";
+  return { s, show, cls };
+}
 
-async function fetchRegion(r){const url=new URL("https://api.open-meteo.com/v1/forecast");url.search=new URLSearchParams({latitude:r.lat,longitude:r.lon,timezone:"auto",daily:"weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max",forecast_days:6}).toString();const res=await fetch(url);if(!res.ok)throw new Error(res.status);return res.json();}
+const cardsEl=document.getElementById("cards");
+function el(t,c,x){const e=document.createElement(t);if(c)e.className=c;if(x)e.textContent=x;return e;}
 
-(async function buildAll(){const items=[];for(const r of regions){try{const data=await fetchRegion(r);const d=data.daily;const today=scoreSuitability({wind:d.wind_speed_10m_max[0],precip:d.precipitation_sum[0],tmax:d.temperature_2m_max[0],tmin:d.temperature_2m_min[0],cloud:[45,48].includes(d.weather_code[0])?95:([0].includes(d.weather_code[0])?15:60)});items.push({...r,data,today});}catch{items.push({...r,error:true,today:{s:5,show:"<10",cls:"bad"}});} }items.sort((a,b)=>b.today.s-a.today.s);items.forEach(renderRegion);})();
+async function fetchRegion(r){
+  const url=new URL("https://api.open-meteo.com/v1/forecast");
+  url.search=new URLSearchParams({
+    latitude:r.lat,longitude:r.lon,timezone:"auto",
+    daily:"weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max",
+    forecast_days:6}).toString();
+  const res=await fetch(url); if(!res.ok)throw new Error(res.status);
+  return res.json();
+}
+
+let regions = loadRegions();
+
+(async function buildAll(){
+  const items=[];
+  for(const r of regions){
+    try{
+      const data=await fetchRegion(r);
+      const d=data.daily;
+      const today=scoreSuitability({
+        wind:d.wind_speed_10m_max[0],
+        precip:d.precipitation_sum[0],
+        tmax:d.temperature_2m_max[0],
+        tmin:d.temperature_2m_min[0],
+        cloud:[45,48].includes(d.weather_code[0])?95:([0].includes(d.weather_code[0])?15:60)
+      });
+      items.push({...r,data,today});
+    }catch{
+      items.push({...r,error:true,today:{s:5,show:"<10",cls:"bad"}});
+    }
+  }
+  items.sort((a,b)=>b.today.s-a.today.s);
+  items.forEach(renderRegion);
+})();
 
 function renderRegion(r){
   const card=el("div","card");
-  const top=el("div","row"); top.append(el("div","name",r.name)); card.append(top);
-  if(r.error){card.append(el("div","tiny","Couldn’t load data right now."));cardsEl.append(card);return;}
+  const top=el("div","row");
+  const left=el("div","name",r.name);
+  const del=el("button","del","✕");
+  del.title = "Remove location";
+  del.onclick = ()=>{
+    regions = regions.filter(x=> !(x.name===r.name && x.lat===r.lat && x.lon===r.lon));
+    saveRegions(regions);
+    cardsEl.innerHTML=""; // rebuild
+    (async()=>{ for(const child of document.querySelectorAll(".card")) child.remove(); })();
+    location.reload(); // simplest reliable rebuild
+  };
+  top.append(left,del);
+  card.append(top);
+
+  if(r.error){
+    card.append(el("div","tiny","Couldn’t load data right now."));
+    cardsEl.append(card);return;
+  }
+
   const d=r.data.daily;
   const kpis=el("div","kpis");
-  kpis.innerHTML=`<div class='k'><span class='tiny'>Temp (max/min)</span><b>${d.temperature_2m_max[0].toFixed(0)}° / ${d.temperature_2m_min[0].toFixed(0)}°</b></div>
-  <div class='k'><span class='tiny'>Wind (max)</span><b>${Math.round(d.wind_speed_10m_max[0])} km/h</b></div>
-  <div class='k'><span class='tiny'>Rain (sum)</span><b>${d.precipitation_sum[0].toFixed(1)} mm</b></div>`;
+  kpis.innerHTML=
+   `<div class='k'><span class='tiny'>Temp (max/min)</span><b>${d.temperature_2m_max[0].toFixed(0)}° / ${d.temperature_2m_min[0].toFixed(0)}°</b></div>
+    <div class='k'><span class='tiny'>Wind (max)</span><b>${Math.round(d.wind_speed_10m_max[0])} km/h</b></div>
+    <div class='k'><span class='tiny'>Rain (sum)</span><b>${d.precipitation_sum[0].toFixed(1)} mm</b></div>`;
   card.append(kpis);
 
-  const days=el("div","days"); const fmt={weekday:"short"};
+  const days=el("div","days");
+  const fmt={weekday:"short"};
   for(let i=0;i<d.time.length;i++){
-    const s=scoreSuitability({wind:d.wind_speed_10m_max[i],precip:d.precipitation_sum[i],tmax:d.temperature_2m_max[i],tmin:d.temperature_2m_min[i],cloud:[45,48].includes(d.weather_code[i])?95:([0].includes(d.weather_code[i])?15:60)});
+    const s=scoreSuitability({
+      wind:d.wind_speed_10m_max[i], precip:d.precipitation_sum[i],
+      tmax:d.temperature_2m_max[i], tmin:d.temperature_2m_min[i],
+      cloud:[45,48].includes(d.weather_code[i])?95:([0].includes(d.weather_code[i])?15:60)
+    });
     const cell=el("div","d");
     cell.append(el("div",`score ${s.cls}`,String(s.show)));
     const dt=new Date(d.time[i]); cell.append(el("div","dt",dt.toLocaleDateString(undefined,fmt)));
@@ -102,6 +234,23 @@ function renderRegion(r){
   }
   card.append(days); cardsEl.append(card);
 }
+
+/* ---- Add UI ---- */
+const panel = document.getElementById('addPanel');
+document.getElementById('addBtn').onclick = ()=> panel.classList.toggle('show');
+document.getElementById('resetBtn').onclick = ()=>{
+  saveRegions(defaultRegions);
+  location.reload();
+};
+document.getElementById('saveBtn').onclick = ()=>{
+  const name = document.getElementById('nm').value.trim();
+  const lat = parseFloat(document.getElementById('lt').value);
+  const lon = parseFloat(document.getElementById('ln').value);
+  if(!name || Number.isNaN(lat) || Number.isNaN(lon)) { alert('Please enter name, latitude and longitude.'); return; }
+  regions.push({name,lat,lon});
+  saveRegions(regions);
+  location.reload();
+};
 </script>
 </body>
 </html>

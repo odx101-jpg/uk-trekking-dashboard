@@ -13,20 +13,13 @@
   header{padding:14px 16px;border-bottom:1px solid var(--line)}
   h1{margin:0;font-size:18px}
   .meta{color:var(--muted);font-size:12px}
-
   #map{height:calc(100% - 68px);width:100%}
 
-  .legend{
-    position:absolute; bottom:16px; right:16px; z-index:999;
-    background:var(--panel); border:1px solid var(--line); color:var(--text);
-    padding:10px 12px;border-radius:10px;font-size:12px; box-shadow:0 1px 0 #0b0f16;
-  }
+  .legend{position:absolute;bottom:16px;right:16px;z-index:999;background:var(--panel);border:1px solid var(--line);color:var(--text);padding:10px 12px;border-radius:10px;font-size:12px;box-shadow:0 1px 0 #0b0f16}
   .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
   .dot.good{background:var(--good)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
 
-  .lbl{padding:5px 10px;border-radius:999px;font-size:12px;font-weight:700;color:#0b1a14;
-       border:1px solid #00000033;box-shadow:0 1px 0 #0009, inset 0 -2px 6px #0004;background:var(--good);
-       display:inline-flex;align-items:center;gap:6px}
+  .lbl{padding:5px 10px;border-radius:999px;font-size:12px;font-weight:700;color:#0b1a14;border:1px solid #00000033;box-shadow:0 1px 0 #0009, inset 0 -2px 6px #0004;background:var(--good);display:inline-flex;align-items:center;gap:6px}
   .lbl.warn{background:var(--warn);color:#111}
   .lbl.bad{background:var(--bad);color:#fff}
   .lbl .s{padding:2px 6px;border-radius:10px;background:#0e6f52;color:#fff;font-weight:800}
@@ -34,25 +27,24 @@
   .lbl.bad .s{background:#7e2224;color:#fff}
   .leaflet-tooltip.lbl-tip{background:transparent;border:none;box-shadow:none;font-family:inherit}
 
-  /* Floating buttons moved to bottom-left (away from legend) */
-  .fab{
-    position:fixed; left:16px; bottom:16px;
-    display:flex; flex-direction:column; gap:10px; z-index:1000;
-  }
-  .btn{
-    padding:9px 12px;border-radius:10px;border:1px solid #215a9e;
-    background:linear-gradient(180deg,#4aa5ff,#2e7fd6);color:#fff;
-    font-weight:800;text-decoration:none;box-shadow:0 2px 10px #0006
-  }
-  .top{
-    padding:10px 12px;border-radius:999px;border:1px solid #2a6c62;
-    background:linear-gradient(180deg,#26c29d,#129d7d);color:#062d24;
-    font-weight:800;text-decoration:none;box-shadow:0 2px 10px #0006
-  }
-  /* On very small screens, nudge the buttons up a touch */
-  @media (max-width:520px){
-    .fab{bottom:88px}
-  }
+  /* Floating controls bottom-left (away from legend) */
+  .fab{position:fixed;left:16px;bottom:16px;display:flex;flex-direction:column;gap:10px;z-index:1000}
+  .btn{padding:9px 12px;border-radius:10px;border:1px solid #215a9e;background:linear-gradient(180deg,#4aa5ff,#2e7fd6);color:#fff;font-weight:800;text-decoration:none;box-shadow:0 2px 10px #0006}
+  .top{padding:10px 12px;border-radius:999px;border:1px solid #2a6c62;background:linear-gradient(180deg,#26c29d,#129d7d);color:#062d24;font-weight:800;text-decoration:none;box-shadow:0 2px 10px #0006}
+  @media (max-width:520px){ .fab{bottom:88px} }
+
+  .panel{position:fixed;left:16px;bottom:120px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:0 3px 18px #0009;min-width:260px;display:none;z-index:1000}
+  .panel h3{margin:0 0 8px 0;font-size:14px}
+  .rowi{display:flex;gap:6px;margin-bottom:6px}
+  .panel input{flex:1;min-width:0;background:#0c1016;border:1px solid var(--line);color:var(--text);padding:6px 8px;border-radius:8px}
+  .panel ul{list-style:none;margin:6px 0 0 0;padding:0;max-height:160px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+  .panel li{display:flex;justify-content:space-between;gap:8px;padding:6px 8px;border-bottom:1px solid #1f2633}
+  .panel li:last-child{border-bottom:none}
+  .panel .x{background:#3a3f4a;border:1px solid #303542;color:#fff;border-radius:6px;padding:2px 8px;cursor:pointer}
+  .panel .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+  .panel button{background:#2f7fde;color:#fff;border:1px solid #215a9e;border-radius:8px;padding:6px 10px;font-weight:700;cursor:pointer}
+  .panel .reset{background:#3a3f4a;border-color:#303542}
+  .show{display:block}
 </style>
 </head>
 <body>
@@ -69,20 +61,51 @@
   <div><span class="dot bad"></span>High risk (&lt;40)</div>
 </div>
 
-<!-- Floating buttons (left) -->
+<!-- Floating controls -->
 <div class="fab">
   <a class="btn" href="./index.html">Dashboard</a>
+  <a class="btn" href="#" id="manageBtn">Manage</a>
   <a class="top" href="#top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑ Top</a>
+</div>
+
+<!-- Manage panel -->
+<div class="panel" id="mgr">
+  <h3>Locations</h3>
+  <div class="rowi"><input id="nm" placeholder="Name" /></div>
+  <div class="rowi"><input id="lt" placeholder="Latitude" /><input id="ln" placeholder="Longitude" /></div>
+  <ul id="list"></ul>
+  <div class="actions">
+    <button class="reset" id="resetBtn">Reset</button>
+    <button id="addBtn">Add</button>
+  </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin></script>
 <script>
-const regions=[{name:"South Downs & Chilterns",lat:51,lon:-0.9},{name:"Peak District (Edale)",lat:53.364,lon:-1.816},{name:"Snowdonia / Eryri (Llanberis)",lat:53.118,lon:-4.127},{name:"Lake District (Keswick)",lat:54.6039,lon:-3.1347},{name:"Yorkshire Dales (Settle)",lat:54.068,lon:-2.278},{name:"Forest of Bowland (Dunsop Bridge)",lat:53.943,lon:-2.502},{name:"Brecon Beacons (Storey Arms)",lat:51.885,lon:-3.471},{name:"North York Moors (Helmsley)",lat:54.245,lon:-1.056},{name:"Dartmoor (Princetown)",lat:50.546,lon:-3.99},{name:"Exmoor (Simonsbath)",lat:51.12,lon:-3.69},{name:"Norfolk Broads (Wroxham)",lat:52.71,lon:1.41}];
+const defaultRegions = [
+  { name:"South Downs & Chilterns", lat:51.000, lon:-0.900 },
+  { name:"Peak District (Edale)", lat:53.364, lon:-1.816 },
+  { name:"Snowdonia / Eryri (Llanberis)", lat:53.118, lon:-4.127 },
+  { name:"Lake District (Keswick)", lat:54.6039, lon:-3.1347 },
+  { name:"Yorkshire Dales (Settle)", lat:54.068, lon:-2.278 },
+  { name:"Forest of Bowland (Dunsop Bridge)", lat:53.943, lon:-2.502 },
+  { name:"Brecon Beacons (Storey Arms)", lat:51.885, lon:-3.471 },
+  { name:"North York Moors (Helmsley)", lat:54.245, lon:-1.056 },
+  { name:"Dartmoor (Princetown)", lat:50.546, lon:-3.990 },
+  { name:"Exmoor (Simonsbath)",  lat:51.120, lon:-3.690 },
+  { name:"Norfolk Broads (Wroxham)", lat:52.710, lon:1.410 },
+  { name:"Gwydyr Forest (Betws-y-Coed)", lat:53.102, lon:-3.806 }
+];
+const STORAGE_KEY="trek_regions";
+function loadRegions(){ try{const r=localStorage.getItem(STORAGE_KEY); if(!r) return [...defaultRegions]; const a=JSON.parse(r); return Array.isArray(a)&&a.length?a:[...defaultRegions];}catch{return [...defaultRegions];} }
+function saveRegions(list){ localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
 
 function scoreSuitability({wind,precip,tmax,tmin,cloud}){let s=100;if(wind>35)s-=(wind-35)*0.8;if(wind>50)s-=(wind-50)*0.7;if(precip>0)s-=Math.min(precip,10)*1;if(precip>10)s-=(precip-10)*2;if(tmax<2||tmin<-2)s-=10;if(tmax>24)s-=(tmax-24)*1;if(cloud>90)s-=3;s=Math.round(Math.max(5,Math.min(100,s)));const show=s<=10?"<10":s;const cls=s>=55?"good":s>=40?"warn":"bad";return{ s,show,cls }}
 
 const map=L.map('map',{center:[53.5,-2.5],zoom:6});
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap'}).addTo(map);
+
+let regions = loadRegions();
 
 (async()=>{
   const items=[];
@@ -102,12 +125,32 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&
     const tip=`<span class="lbl ${item.today.cls}">${item.name} <span class="s">${item.today.show}</span></span>`;
     const m=L.marker([item.lat,item.lon],{opacity:0}).addTo(map);
     m.bindTooltip(tip,{permanent:true,direction:'top',className:'lbl-tip',offset:[0,0]}).openTooltip();
-    const details=item.error?'<div style="color:#ff8080">Data unavailable.</div>':
-      `<div style="color:#ccc">Max/Min: ${item.data.daily.temperature_2m_max[0].toFixed(0)}° /
-      ${item.data.daily.temperature_2m_min[0].toFixed(0)}° · Wind: ${Math.round(item.data.daily.wind_speed_10m_max[0])} km/h · Rain: ${item.data.daily.precipitation_sum[0].toFixed(1)} mm</div>`;
-    m.bindPopup(`<strong>${item.name}</strong>${details}`);
   });
 })();
+
+/* ---- Manage UI ---- */
+const mgr=document.getElementById('mgr');
+const listEl=document.getElementById('list');
+document.getElementById('manageBtn').onclick=()=>{mgr.classList.toggle('show'); renderList();};
+document.getElementById('resetBtn').onclick=()=>{saveRegions(defaultRegions); location.reload();};
+document.getElementById('addBtn').onclick=()=>{
+  const name=document.getElementById('nm').value.trim();
+  const lat=parseFloat(document.getElementById('lt').value);
+  const lon=parseFloat(document.getElementById('ln').value);
+  if(!name||Number.isNaN(lat)||Number.isNaN(lon)){alert('Please enter name, latitude and longitude.');return;}
+  const cur=loadRegions(); cur.push({name,lat,lon}); saveRegions(cur); location.reload();
+};
+function renderList(){
+  const cur=loadRegions();
+  listEl.innerHTML="";
+  cur.forEach((r,idx)=>{
+    const li=document.createElement('li');
+    li.innerHTML=`<span>${r.name}</span>`;
+    const x=document.createElement('button'); x.className='x'; x.textContent='Delete';
+    x.onclick=()=>{ const after=cur.filter((_,i)=>i!==idx); saveRegions(after); location.reload(); };
+    li.appendChild(x); listEl.appendChild(li);
+  });
+}
 </script>
 </body>
 </html>

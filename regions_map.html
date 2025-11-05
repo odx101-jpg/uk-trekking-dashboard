@@ -6,41 +6,19 @@
 <title>UK Trekking – Map View</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin>
 <style>
-  :root{
-    --bg:#0e1116;--panel:#151a23;--line:#242b38;
-    --text:#e9edf3;--muted:#a9b3c3;
-    --good:#25c28a;--warn:#ffc24d;--bad:#ff4d4f;--accent:#46a3ff;
-  }
-  *{box-sizing:border-box}
-  html{scroll-behavior:smooth}
-  html,body{height:100%}
+  :root{--bg:#0e1116;--panel:#151a23;--line:#242b38;--text:#e9edf3;--muted:#a9b3c3;--good:#25c28a;--warn:#ffc24d;--bad:#ff4d4f;}
+  *{box-sizing:border-box} html{scroll-behavior:smooth} html,body{height:100%}
   body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial}
-
-  /* Header */
   header{padding:14px 16px;border-bottom:1px solid var(--line)}
-  .head{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   h1{margin:0;font-size:18px}
-  .meta{color:var(--muted);font-size:12px;width:100%}
-  .btn{
-    display:inline-flex;align-items:center;gap:8px;
-    padding:8px 12px;border-radius:10px;border:1px solid #215a9e;
-    background:linear-gradient(180deg,#4aa5ff,#2e7fd6); color:#fff;
-    font-weight:700; text-decoration:none; box-shadow:0 1px 0 #0b0f16;
-  }
-
+  .meta{color:var(--muted);font-size:12px}
   #map{height:calc(100% - 68px);width:100%}
 
-  .legend{
-    position:absolute; bottom:16px; right:16px; background:var(--panel);
-    border:1px solid var(--line); color:var(--text); padding:10px 12px;
-    border-radius:10px; font-size:12px; box-shadow:0 1px 0 #0b0f16; z-index:999
-  }
+  .legend{position:absolute;bottom:16px;right:16px;background:var(--panel);border:1px solid var(--line);color:var(--text);padding:10px 12px;border-radius:10px;font-size:12px;box-shadow:0 1px 0 #0b0f16;z-index:999}
   .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
   .dot.good{background:var(--good)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
 
-  /* Clean pill labels */
-  .lbl{padding:5px 10px;border-radius:999px;font-size:12px;font-weight:700;color:#0b1a14;
-       border:1px solid #00000033;box-shadow:0 1px 0 #0009, inset 0 -2px 6px #0004;background:var(--good);display:inline-flex;align-items:center;gap:6px}
+  .lbl{padding:5px 10px;border-radius:999px;font-size:12px;font-weight:700;color:#0b1a14;border:1px solid #00000033;box-shadow:0 1px 0 #0009, inset 0 -2px 6px #0004;background:var(--good);display:inline-flex;align-items:center;gap:6px}
   .lbl.warn{background:var(--warn);color:#111}
   .lbl.bad{background:var(--bad);color:#fff}
   .lbl .s{padding:2px 6px;border-radius:10px;background:#0e6f52;color:#fff;font-weight:800}
@@ -48,24 +26,16 @@
   .lbl.bad .s{background:#7e2224;color:#fff}
   .leaflet-tooltip.lbl-tip{background:transparent;border:none;box-shadow:none;font-family:inherit}
 
-  /* Floating Top button */
-  .fab{
-    position:fixed;right:16px;bottom:16px;z-index:1000
-  }
-  .fab .top{
-    padding:10px 12px;border-radius:999px;border:1px solid #2a6c62;
-    background:linear-gradient(180deg,#26c29d,#129d7d);
-    color:#062d24;font-weight:800;text-decoration:none;box-shadow:0 2px 10px #0006
-  }
+  /* Floating buttons */
+  .fab{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:10px;z-index:1000}
+  .btn{padding:9px 12px;border-radius:10px;border:1px solid #215a9e;background:linear-gradient(180deg,#4aa5ff,#2e7fd6);color:#fff;font-weight:800;text-decoration:none;box-shadow:0 2px 10px #0006}
+  .top{padding:10px 12px;border-radius:999px;border:1px solid #2a6c62;background:linear-gradient(180deg,#26c29d,#129d7d);color:#062d24;font-weight:800;text-decoration:none;box-shadow:0 2px 10px #0006}
 </style>
 </head>
 <body>
 <header>
-  <div class="head">
-    <h1>UK Trekking – Map View</h1>
-    <a class="btn" href="./index.html">Dashboard</a>
-    <div class="meta">Colour-coded by today’s suitability · Data: Open-Meteo</div>
-  </div>
+  <h1>UK Trekking – Map View</h1>
+  <div class="meta">Colour-coded by today’s suitability · Data: Open-Meteo</div>
 </header>
 
 <div id="map"></div>
@@ -75,86 +45,42 @@
   <div><span class="dot bad"></span>High risk (&lt;40)</div>
 </div>
 
-<!-- Floating Top -->
-<div class="fab"><a class="top" href="#top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑ Top</a></div>
+<!-- Floating buttons -->
+<div class="fab">
+  <a class="btn" href="./index.html">Dashboard</a>
+  <a class="top" href="#top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑ Top</a>
+</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin></script>
 <script>
-const regions = [
-  { name:"South Downs & Chilterns", lat:51.000, lon:-0.900 },
-  { name:"Peak District (Edale)", lat:53.364, lon:-1.816 },
-  { name:"Snowdonia / Eryri (Llanberis)", lat:53.118, lon:-4.127 },
-  { name:"Lake District (Keswick)", lat:54.6039, lon:-3.1347 },
-  { name:"Yorkshire Dales (Settle)", lat:54.068, lon:-2.278 },
-  { name:"Forest of Bowland (Dunsop Bridge)", lat:53.943, lon:-2.502 },
-  { name:"Brecon Beacons (Storey Arms)", lat:51.885, lon:-3.471 },
-  { name:"North York Moors (Helmsley)", lat:54.245, lon:-1.056 },
-  { name:"Dartmoor (Princetown)", lat:50.546, lon:-3.990 },
-  { name:"Exmoor (Simonsbath)", lat:51.120, lon:-3.690 },
-  { name:"Norfolk Broads (Wroxham)", lat:52.710, lon:1.410 }
-];
+const regions=[{name:"South Downs & Chilterns",lat:51,lon:-0.9},{name:"Peak District (Edale)",lat:53.364,lon:-1.816},{name:"Snowdonia / Eryri (Llanberis)",lat:53.118,lon:-4.127},{name:"Lake District (Keswick)",lat:54.6039,lon:-3.1347},{name:"Yorkshire Dales (Settle)",lat:54.068,lon:-2.278},{name:"Forest of Bowland (Dunsop Bridge)",lat:53.943,lon:-2.502},{name:"Brecon Beacons (Storey Arms)",lat:51.885,lon:-3.471},{name:"North York Moors (Helmsley)",lat:54.245,lon:-1.056},{name:"Dartmoor (Princetown)",lat:50.546,lon:-3.99},{name:"Exmoor (Simonsbath)",lat:51.12,lon:-3.69},{name:"Norfolk Broads (Wroxham)",lat:52.71,lon:1.41}];
 
-function scoreSuitability({ wind, precip, tmax, tmin, cloud }){
-  let s=100;
-  if(wind>35)s-=(wind-35)*0.8;
-  if(wind>50)s-=(wind-50)*0.7;
-  if(precip>0)s-=Math.min(precip,10)*1.0;
-  if(precip>10)s-=(precip-10)*2.0;
-  if(tmax<2||tmin<-2)s-=10;
-  if(tmax>24)s-=(tmax-24)*1.0;
-  if(cloud>90)s-=3;
-  s=Math.round(Math.max(5,Math.min(100,s)));
-  const show=s<=10?"<10":s;
-  const label=s>=75?"Very good":s>=55?"Good":s>=40?"Fair":"High risk";
-  const cls=s>=55?"good":s>=40?"warn":"bad";
-  return { s, show, label, cls };
-}
+function scoreSuitability({wind,precip,tmax,tmin,cloud}){let s=100;if(wind>35)s-=(wind-35)*0.8;if(wind>50)s-=(wind-50)*0.7;if(precip>0)s-=Math.min(precip,10)*1;if(precip>10)s-=(precip-10)*2;if(tmax<2||tmin<-2)s-=10;if(tmax>24)s-=(tmax-24)*1;if(cloud>90)s-=3;s=Math.round(Math.max(5,Math.min(100,s)));const show=s<=10?"<10":s;const cls=s>=55?"good":s>=40?"warn":"bad";return{ s,show,cls }}
 
-const map = L.map('map', { center:[53.5,-2.5], zoom:6 });
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-  { attribution:'&copy; OpenStreetMap' }).addTo(map);
+const map=L.map('map',{center:[53.5,-2.5],zoom:6});L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap'}).addTo(map);
 
 (async()=>{
   const items=[];
   for(const r of regions){
     try{
       const url=new URL("https://api.open-meteo.com/v1/forecast");
-      url.search=new URLSearchParams({
-        latitude:r.lat,longitude:r.lon,timezone:"auto",
-        daily:"weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max",
-        forecast_days:6}).toString();
-      const res=await fetch(url);
-      if(!res.ok) throw new Error(res.status);
+      url.search=new URLSearchParams({latitude:r.lat,longitude:r.lon,timezone:"auto",daily:"weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max",forecast_days:6}).toString();
+      const res=await fetch(url); if(!res.ok) throw new Error(res.status);
       const data=await res.json(), d=data.daily;
-      const today=scoreSuitability({
-        wind:d.wind_speed_10m_max[0],
-        precip:d.precipitation_sum[0],
-        tmax:d.temperature_2m_max[0],
-        tmin:d.temperature_2m_min[0],
-        cloud:[45,48].includes(d.weather_code[0])?95:([0].includes(d.weather_code[0])?15:60)
-      });
+      const today=scoreSuitability({wind:d.wind_speed_10m_max[0],precip:d.precipitation_sum[0],tmax:d.temperature_2m_max[0],tmin:d.temperature_2m_min[0],cloud:[45,48].includes(d.weather_code[0])?95:([0].includes(d.weather_code[0])?15:60)});
       items.push({...r,today,data});
-    }catch{
-      items.push({...r,today:{s:5,show:"<10",label:"High risk",cls:"bad"},error:true});
-    }
+    }catch{ items.push({...r,today:{s:5,show:"<10",cls:"bad"},error:true}); }
   }
-
   items.sort((a,b)=>b.today.s-a.today.s);
 
   items.forEach(item=>{
-    const tip = `<span class="lbl ${item.today.cls}">
-      ${item.name} <span class="s">${item.today.show}</span></span>`;
-    const marker = L.marker([item.lat,item.lon],{opacity:0}); // invisible anchor
-    marker.addTo(map);
+    const tip=`<span class="lbl ${item.today.cls}">${item.name} <span class="s">${item.today.show}</span></span>`;
+    const marker=L.marker([item.lat,item.lon],{opacity:0}).addTo(map);
     marker.bindTooltip(tip,{permanent:true,direction:'top',className:'lbl-tip',offset:[0,0]}).openTooltip();
-
-    const details = item.error
-      ? '<div style="color:#ff8080">Data unavailable.</div>'
-      : `<div style="color:#ccc">Max/Min: ${item.data.daily.temperature_2m_max[0].toFixed(0)}° /
-         ${item.data.daily.temperature_2m_min[0].toFixed(0)}° · Wind:
-         ${Math.round(item.data.daily.wind_speed_10m_max[0])} km/h · Rain:
-         ${item.data.daily.precipitation_sum[0].toFixed(1)} mm</div>`;
-    marker.bindPopup(`<strong>${item.name}</strong> — ${item.today.label}${details}`);
+    const details=item.error?'<div style="color:#ff8080">Data unavailable.</div>':
+      `<div style="color:#ccc">Max/Min: ${item.data.daily.temperature_2m_max[0].toFixed(0)}° /
+      ${item.data.daily.temperature_2m_min[0].toFixed(0)}° · Wind: ${Math.round(item.data.daily.wind_speed_10m_max[0])} km/h · Rain: ${item.data.daily.precipitation_sum[0].toFixed(1)} mm</div>`;
+    marker.bindPopup(`<strong>${item.name}</strong>${details}`);
   });
 })();
 </script>

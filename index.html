@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>UK Trekking Dashboard – Daily Scores</title>
+<title>UK Trekking – Daily HikeScores</title>
 <style>
   :root{
     --bg:#0e1116;--panel:#151a23;--line:#242b38;
@@ -13,10 +13,17 @@
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);
     font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial}
-  header{padding:16px 18px;border-bottom:1px solid var(--line)}
+  header{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}
   h1{margin:0 0 6px 0;font-size:20px}
   .sub{color:var(--muted);font-size:13px}
-  .sub a{color:var(--accent);text-decoration:none}
+  .actions{display:flex;gap:10px;align-items:center}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:8px 12px;border-radius:10px;border:1px solid #215a9e;
+    background:linear-gradient(180deg,#4aa5ff,#2e7fd6); color:#fff;
+    font-weight:700; text-decoration:none; box-shadow:0 1px 0 #0b0f16;
+  }
+  .btn:active{transform:translateY(1px)}
 
   .grid{
     display:grid;gap:20px;padding:16px;
@@ -53,9 +60,9 @@
   .dt{font-size:12px;color:var(--muted)}
   .wx{display:flex;align-items:center;gap:8px}
 
-  .ico{width:26px;height:26px;display:inline-block;filter:drop-shadow(0 0 2px #0008)}
-  .ico.good{color:var(--good)} .ico.warn{color:var(--warn)} .ico.bad{color:var(--bad)}
-  .ico svg { fill: currentColor; stroke: currentColor; }
+  /* Neutral (reverted) weather icons */
+  .ico{width:26px;height:26px;display:inline-block;color:var(--muted);filter:drop-shadow(0 0 2px #0008)}
+  .ico svg{fill:currentColor;stroke:currentColor}
 
   .t{font-weight:600}
   .tiny{font-size:12px;color:var(--muted)}
@@ -77,11 +84,12 @@
 </head>
 <body>
 <header>
-  <h1>UK Trekking – Daily HikeScores</h1>
-  <div class="sub">
-    Each tile shows its own HikeScore · Icons: clouds & light rain = green · Data:
-    <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo</a> ·
-    <a href="regions_map.html">Map view</a>
+  <div>
+    <h1>UK Trekking – Daily HikeScores</h1>
+    <div class="sub">Each tile shows its own HikeScore · Data: <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo</a></div>
+  </div>
+  <div class="actions">
+    <a class="btn" href="regions_map.html" title="See scores placed on the UK map">Regions Map</a>
   </div>
 </header>
 
@@ -107,7 +115,7 @@ const regions = [
   { name:"Norfolk Broads (Wroxham)", lat:52.710, lon:1.410 }
 ];
 
-/* Icons (currentColor) */
+/* Icons (neutral) */
 const I={
   sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4" fill="currentColor"/><g opacity=".9"><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></g></svg>',
   cloud:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 18a4.5 4.5 0 0 1 0-9c.3 0 .6 0 .9.1A5.5 5.5 0 0 1 18 9.5c2.2 0 4 1.8 4 4S20.2 14 18 14z"/></svg>',
@@ -144,15 +152,6 @@ function scoreSuitability({ wind, precip, tmax, tmin, cloud }){
   return { s, show, label, cls };
 }
 
-/* Tint rule for icons (clouds & light/med rain = green) */
-function iconTintByWeatherCode(code){
-  if([1,2,3,45,48].includes(code)) return 'good';
-  if([51,53,55,56,57,61,63,65,80,81,82].includes(code)) return 'good';
-  if([66,67,71,73,75,77,85,86].includes(code)) return 'warn';
-  if([95,96,99].includes(code)) return 'bad';
-  return 'good';
-}
-
 const cardsEl=document.getElementById("cards");
 function el(t,c,x){const e=document.createElement(t);if(c)e.className=c;if(x)e.textContent=x;return e;}
 
@@ -173,7 +172,7 @@ async function fetchRegion(r){
     try{
       const data=await fetchRegion(r);
       const d=data.daily;
-      // use day-0 score for sorting (today)
+      // sort by today's score
       const today=scoreSuitability({
         wind:d.wind_speed_10m_max[0],
         precip:d.precipitation_sum[0],
@@ -203,7 +202,6 @@ function renderRegion(r){
 
   const d=r.data.daily;
 
-  /* show headline KPIs for today only (no overall “combined” score) */
   const kpis=el("div","kpis");
   kpis.innerHTML=
    `<div class='k'><span class='tiny'>Temp (max/min)</span><b>${d.temperature_2m_max[0].toFixed(0)}° / ${d.temperature_2m_min[0].toFixed(0)}°</b></div>
@@ -211,7 +209,6 @@ function renderRegion(r){
     <div class='k'><span class='tiny'>Rain (sum)</span><b>${d.precipitation_sum[0].toFixed(1)} mm</b></div>`;
   card.append(kpis);
 
-  /* per-day tiles with per-day scores */
   const days=el("div","days");
   const fmt={weekday:"short"};
   for(let i=0;i<d.time.length;i++){
@@ -223,17 +220,15 @@ function renderRegion(r){
       cloud:[45,48].includes(d.weather_code[i])?95:([0].includes(d.weather_code[i])?15:60)
     });
     const cell=el("div","d");
-    // score badge
     const badge=el("div",`score ${dayScore.cls}`,String(dayScore.show));
     cell.append(badge);
 
     const dt=new Date(d.time[i]);
     cell.append(el("div","dt",dt.toLocaleDateString(undefined,fmt)));
 
-    const tintCls=iconTintByWeatherCode(d.weather_code[i]);
     const wx=el("div","wx");
     const ic=document.createElement("span");
-    ic.className=`ico ${tintCls}`;
+    ic.className="ico";
     ic.innerHTML=I[iconKey(d.weather_code[i])];
     wx.append(ic,el("div","t",`${d.temperature_2m_max[i].toFixed(0)}° / ${d.temperature_2m_min[i].toFixed(0)}°`));
     cell.append(wx);

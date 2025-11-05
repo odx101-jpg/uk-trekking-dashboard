@@ -9,16 +9,24 @@
   :root{--bg:#0e1116;--panel:#151a23;--line:#242b38;--text:#e9edf3;--muted:#a9b3c3;--good:#25c28a;--warn:#ffc24d;--bad:#ff4d4f;}
   *{box-sizing:border-box} html{scroll-behavior:smooth} html,body{height:100%}
   body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial}
+
   header{padding:14px 16px;border-bottom:1px solid var(--line)}
   h1{margin:0;font-size:18px}
   .meta{color:var(--muted);font-size:12px}
+
   #map{height:calc(100% - 68px);width:100%}
 
-  .legend{position:absolute;bottom:16px;right:16px;background:var(--panel);border:1px solid var(--line);color:var(--text);padding:10px 12px;border-radius:10px;font-size:12px;box-shadow:0 1px 0 #0b0f16;z-index:999}
+  .legend{
+    position:absolute; bottom:16px; right:16px; z-index:999;
+    background:var(--panel); border:1px solid var(--line); color:var(--text);
+    padding:10px 12px;border-radius:10px;font-size:12px; box-shadow:0 1px 0 #0b0f16;
+  }
   .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
   .dot.good{background:var(--good)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
 
-  .lbl{padding:5px 10px;border-radius:999px;font-size:12px;font-weight:700;color:#0b1a14;border:1px solid #00000033;box-shadow:0 1px 0 #0009, inset 0 -2px 6px #0004;background:var(--good);display:inline-flex;align-items:center;gap:6px}
+  .lbl{padding:5px 10px;border-radius:999px;font-size:12px;font-weight:700;color:#0b1a14;
+       border:1px solid #00000033;box-shadow:0 1px 0 #0009, inset 0 -2px 6px #0004;background:var(--good);
+       display:inline-flex;align-items:center;gap:6px}
   .lbl.warn{background:var(--warn);color:#111}
   .lbl.bad{background:var(--bad);color:#fff}
   .lbl .s{padding:2px 6px;border-radius:10px;background:#0e6f52;color:#fff;font-weight:800}
@@ -26,10 +34,25 @@
   .lbl.bad .s{background:#7e2224;color:#fff}
   .leaflet-tooltip.lbl-tip{background:transparent;border:none;box-shadow:none;font-family:inherit}
 
-  /* Floating buttons */
-  .fab{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:10px;z-index:1000}
-  .btn{padding:9px 12px;border-radius:10px;border:1px solid #215a9e;background:linear-gradient(180deg,#4aa5ff,#2e7fd6);color:#fff;font-weight:800;text-decoration:none;box-shadow:0 2px 10px #0006}
-  .top{padding:10px 12px;border-radius:999px;border:1px solid #2a6c62;background:linear-gradient(180deg,#26c29d,#129d7d);color:#062d24;font-weight:800;text-decoration:none;box-shadow:0 2px 10px #0006}
+  /* Floating buttons moved to bottom-left (away from legend) */
+  .fab{
+    position:fixed; left:16px; bottom:16px;
+    display:flex; flex-direction:column; gap:10px; z-index:1000;
+  }
+  .btn{
+    padding:9px 12px;border-radius:10px;border:1px solid #215a9e;
+    background:linear-gradient(180deg,#4aa5ff,#2e7fd6);color:#fff;
+    font-weight:800;text-decoration:none;box-shadow:0 2px 10px #0006
+  }
+  .top{
+    padding:10px 12px;border-radius:999px;border:1px solid #2a6c62;
+    background:linear-gradient(180deg,#26c29d,#129d7d);color:#062d24;
+    font-weight:800;text-decoration:none;box-shadow:0 2px 10px #0006
+  }
+  /* On very small screens, nudge the buttons up a touch */
+  @media (max-width:520px){
+    .fab{bottom:88px}
+  }
 </style>
 </head>
 <body>
@@ -39,13 +62,14 @@
 </header>
 
 <div id="map"></div>
+
 <div class="legend">
   <div><span class="dot good"></span>Very good / Good (≥55)</div>
   <div><span class="dot warn"></span>Fair (40–54)</div>
   <div><span class="dot bad"></span>High risk (&lt;40)</div>
 </div>
 
-<!-- Floating buttons -->
+<!-- Floating buttons (left) -->
 <div class="fab">
   <a class="btn" href="./index.html">Dashboard</a>
   <a class="top" href="#top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑ Top</a>
@@ -57,7 +81,8 @@ const regions=[{name:"South Downs & Chilterns",lat:51,lon:-0.9},{name:"Peak Dist
 
 function scoreSuitability({wind,precip,tmax,tmin,cloud}){let s=100;if(wind>35)s-=(wind-35)*0.8;if(wind>50)s-=(wind-50)*0.7;if(precip>0)s-=Math.min(precip,10)*1;if(precip>10)s-=(precip-10)*2;if(tmax<2||tmin<-2)s-=10;if(tmax>24)s-=(tmax-24)*1;if(cloud>90)s-=3;s=Math.round(Math.max(5,Math.min(100,s)));const show=s<=10?"<10":s;const cls=s>=55?"good":s>=40?"warn":"bad";return{ s,show,cls }}
 
-const map=L.map('map',{center:[53.5,-2.5],zoom:6});L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap'}).addTo(map);
+const map=L.map('map',{center:[53.5,-2.5],zoom:6});
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap'}).addTo(map);
 
 (async()=>{
   const items=[];
@@ -75,12 +100,12 @@ const map=L.map('map',{center:[53.5,-2.5],zoom:6});L.tileLayer('https://{s}.tile
 
   items.forEach(item=>{
     const tip=`<span class="lbl ${item.today.cls}">${item.name} <span class="s">${item.today.show}</span></span>`;
-    const marker=L.marker([item.lat,item.lon],{opacity:0}).addTo(map);
-    marker.bindTooltip(tip,{permanent:true,direction:'top',className:'lbl-tip',offset:[0,0]}).openTooltip();
+    const m=L.marker([item.lat,item.lon],{opacity:0}).addTo(map);
+    m.bindTooltip(tip,{permanent:true,direction:'top',className:'lbl-tip',offset:[0,0]}).openTooltip();
     const details=item.error?'<div style="color:#ff8080">Data unavailable.</div>':
       `<div style="color:#ccc">Max/Min: ${item.data.daily.temperature_2m_max[0].toFixed(0)}° /
       ${item.data.daily.temperature_2m_min[0].toFixed(0)}° · Wind: ${Math.round(item.data.daily.wind_speed_10m_max[0])} km/h · Rain: ${item.data.daily.precipitation_sum[0].toFixed(1)} mm</div>`;
-    marker.bindPopup(`<strong>${item.name}</strong>${details}`);
+    m.bindPopup(`<strong>${item.name}</strong>${details}`);
   });
 })();
 </script>

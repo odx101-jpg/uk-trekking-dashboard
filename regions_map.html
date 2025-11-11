@@ -10,16 +10,26 @@
   *{box-sizing:border-box} html{scroll-behavior:smooth} html,body{height:100%}
   body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial}
 
+  /* Header */
   header{padding:14px 16px;border-bottom:1px solid var(--line)}
   h1{margin:0;font-size:18px}
   .meta{color:var(--muted);font-size:12px}
+
   #map{height:calc(100% - 68px);width:100%}
 
-  .legend{position:absolute;bottom:16px;right:16px;z-index:999;background:var(--panel);border:1px solid var(--line);color:var(--text);padding:10px 12px;border-radius:10px;font-size:12px;box-shadow:0 1px 0 #0b0f16}
+  /* Legend bottom-right */
+  .legend{
+    position:absolute; bottom:16px; right:16px; z-index:999;
+    background:var(--panel); border:1px solid var(--line); color:var(--text);
+    padding:10px 12px;border-radius:10px;font-size:12px; box-shadow:0 1px 0 #0b0f16;
+  }
   .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
   .dot.good{background:var(--good)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
 
-  .lbl{padding:5px 10px;border-radius:999px;font-size:12px;font-weight:700;color:#0b1a14;border:1px solid #00000033;box-shadow:0 1px 0 #0009, inset 0 -2px 6px #0004;background:var(--good);display:inline-flex;align-items:center;gap:6px}
+  /* Tooltip labels */
+  .lbl{padding:5px 10px;border-radius:999px;font-size:12px;font-weight:700;color:#0b1a14;
+       border:1px solid #00000033;box-shadow:0 1px 0 #0009, inset 0 -2px 6px #0004;background:var(--good);
+       display:inline-flex;align-items:center;gap:6px}
   .lbl.warn{background:var(--warn);color:#111}
   .lbl.bad{background:var(--bad);color:#fff}
   .lbl .s{padding:2px 6px;border-radius:10px;background:#0e6f52;color:#fff;font-weight:800}
@@ -33,6 +43,7 @@
   .top{padding:10px 12px;border-radius:999px;border:1px solid #2a6c62;background:linear-gradient(180deg,#26c29d,#129d7d);color:#062d24;font-weight:800;text-decoration:none;box-shadow:0 2px 10px #0006}
   @media (max-width:520px){ .fab{bottom:88px} }
 
+  /* Manage panel */
   .panel{position:fixed;left:16px;bottom:120px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:0 3px 18px #0009;min-width:260px;display:none;z-index:1000}
   .panel h3{margin:0 0 8px 0;font-size:14px}
   .rowi{display:flex;gap:6px;margin-bottom:6px}
@@ -82,7 +93,9 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin></script>
 <script>
+/* ---------- Defaults (Upper Basildon first) ---------- */
 const defaultRegions = [
+  { name:"Upper Basildon", lat:51.488, lon:-1.123 },
   { name:"South Downs & Chilterns", lat:51.000, lon:-0.900 },
   { name:"Peak District (Edale)", lat:53.364, lon:-1.816 },
   { name:"Snowdonia / Eryri (Llanberis)", lat:53.118, lon:-4.127 },
@@ -100,7 +113,20 @@ const STORAGE_KEY="trek_regions";
 function loadRegions(){ try{const r=localStorage.getItem(STORAGE_KEY); if(!r) return [...defaultRegions]; const a=JSON.parse(r); return Array.isArray(a)&&a.length?a:[...defaultRegions];}catch{return [...defaultRegions];} }
 function saveRegions(list){ localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
 
-function scoreSuitability({wind,precip,tmax,tmin,cloud}){let s=100;if(wind>35)s-=(wind-35)*0.8;if(wind>50)s-=(wind-50)*0.7;if(precip>0)s-=Math.min(precip,10)*1;if(precip>10)s-=(precip-10)*2;if(tmax<2||tmin<-2)s-=10;if(tmax>24)s-=(tmax-24)*1;if(cloud>90)s-=3;s=Math.round(Math.max(5,Math.min(100,s)));const show=s<=10?"<10":s;const cls=s>=55?"good":s>=40?"warn":"bad";return{ s,show,cls }}
+/* ---------- Scoring ---------- */
+function scoreSuitability({wind,precip,tmax,tmin,cloud}){let s=100;
+  if(wind>35)s-=(wind-35)*0.8;
+  if(wind>50)s-=(wind-50)*0.7;
+  if(precip>0)s-=Math.min(precip,10)*1.0;
+  if(precip>10)s-=(precip-10)*2.0;
+  if(tmax<2||tmin<-2)s-=10;
+  if(tmax>24)s-=(tmax-24)*1.0;
+  if(cloud>90)s-=3;
+  s=Math.round(Math.max(5,Math.min(100,s)));
+  const show=s<=10?"<10":s;
+  const cls=s>=55?"good":s>=40?"warn":"bad";
+  return { s, show, cls };
+}
 
 const map=L.map('map',{center:[53.5,-2.5],zoom:6});
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap'}).addTo(map);
@@ -112,12 +138,21 @@ let regions = loadRegions();
   for(const r of regions){
     try{
       const url=new URL("https://api.open-meteo.com/v1/forecast");
-      url.search=new URLSearchParams({latitude:r.lat,longitude:r.lon,timezone:"auto",daily:"weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max",forecast_days:6}).toString();
+      url.search=new URLSearchParams({
+        latitude:r.lat,longitude:r.lon,timezone:"auto",
+        daily:"weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max",
+        forecast_days:6}).toString();
       const res=await fetch(url); if(!res.ok) throw new Error(res.status);
       const data=await res.json(), d=data.daily;
-      const today=scoreSuitability({wind:d.wind_speed_10m_max[0],precip:d.precipitation_sum[0],tmax:d.temperature_2m_max[0],tmin:d.temperature_2m_min[0],cloud:[45,48].includes(d.weather_code[0])?95:([0].includes(d.weather_code[0])?15:60)});
-      items.push({...r,today,data});
-    }catch{ items.push({...r,today:{s:5,show:"<10",cls:"bad"},error:true}); }
+      const today=scoreSuitability({
+        wind:d.wind_speed_10m_max[0],precip:d.precipitation_sum[0],
+        tmax:d.temperature_2m_max[0],tmin:d.temperature_2m_min[0],
+        cloud:[45,48].includes(d.weather_code[0])?95:([0].includes(d.weather_code[0])?15:60)
+      });
+      items.push({...r,today});
+    }catch{
+      items.push({...r,today:{s:5,show:"<10",cls:"bad"},error:true});
+    }
   }
   items.sort((a,b)=>b.today.s-a.today.s);
 
@@ -128,7 +163,7 @@ let regions = loadRegions();
   });
 })();
 
-/* ---- Manage UI ---- */
+/* ---------- Manage UI ---------- */
 const mgr=document.getElementById('mgr');
 const listEl=document.getElementById('list');
 document.getElementById('manageBtn').onclick=()=>{mgr.classList.toggle('show'); renderList();};
